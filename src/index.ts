@@ -5,9 +5,7 @@ import { cors } from 'hono/cors';
 import sensorDataRoutes from './routes/sensor-data';
 import sessionsRoutes from './routes/sessions';
 import analyticsRoutes from './routes/analytics';
-import dashboardRoute from './routes/dashboard';
-import historyRoute from './routes/history';
-import analyticsPageRoute from './routes/analytics-page';
+import spaRoute from './routes/spa';
 
 // Types for Cloudflare Workers
 export interface Env {
@@ -41,10 +39,9 @@ app.route('/api/sensor-data', sensorDataRoutes);
 app.route('/api/sessions', sessionsRoutes);
 app.route('/api/analytics', analyticsRoutes);
 
-// Page Routes  
-app.route('/', dashboardRoute);
-app.route('/history', historyRoute);
-app.route('/analytics', analyticsPageRoute);
+// SPA Routes - Single Page Application with client-side routing
+// BLE connection persists across all navigation
+app.route('/', spaRoute);
 
 // 404 handler
 app.notFound((c) => {
