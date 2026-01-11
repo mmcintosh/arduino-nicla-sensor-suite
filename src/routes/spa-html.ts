@@ -1284,24 +1284,45 @@ export const SPA_HTML = `<!DOCTYPE html>
     document.addEventListener('DOMContentLoaded', () => {
       console.log('🚀 Nicla Sensor Suite initializing...');
       
-      // Initialize router
-      initRouter();
-      
-      // Pair button
-      document.getElementById('pairButton').addEventListener('click', async () => {
-        if (AppState.isConnected) {
-          if (AppState.device && AppState.device.gatt.connected) {
-            AppState.device.gatt.disconnect();
-          }
-        } else {
-          await connectDevice();
+      try {
+        // Initialize router
+        initRouter();
+        
+        // Pair button
+        const pairButton = document.getElementById('pairButton');
+        if (!pairButton) {
+          console.error('❌ Pair button not found!');
+          return;
         }
-      });
-      
-      // Record button
-      document.getElementById('recordButton').addEventListener('click', toggleRecording);
-      
-      console.log('✅ Initialization complete');
+        
+        console.log('✅ Pair button found, attaching listener...');
+        pairButton.addEventListener('click', async () => {
+          console.log('🔘 Pair button clicked!');
+          if (AppState.isConnected) {
+            console.log('Disconnecting...');
+            if (AppState.device && AppState.device.gatt.connected) {
+              AppState.device.gatt.disconnect();
+            }
+          } else {
+            console.log('Connecting...');
+            await connectDevice();
+          }
+        });
+        
+        // Record button
+        const recordButton = document.getElementById('recordButton');
+        if (!recordButton) {
+          console.error('❌ Record button not found!');
+          return;
+        }
+        
+        console.log('✅ Record button found, attaching listener...');
+        recordButton.addEventListener('click', toggleRecording);
+        
+        console.log('✅ Initialization complete');
+      } catch (error) {
+        console.error('❌ Initialization error:', error);
+      }
     });
 
     // Cleanup on page unload
