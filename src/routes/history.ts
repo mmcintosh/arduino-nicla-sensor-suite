@@ -389,7 +389,7 @@ app.get('/', async (c) => {
         const chartsDiv = document.getElementById('charts');
         Object.keys(sensorGroups).forEach(sensorName => {
           if (sensorGroups[sensorName].length > 0) {
-            const chartId = 'chart-' + sensorName.replace(/\s/g, '-');
+            const chartId = 'chart-' + sensorName.split(' ').join('-');
             chartsDiv.innerHTML += \`<div id="\${chartId}" class="chart-container" style="height:300px;"></div>\`;
             
             setTimeout(() => {
