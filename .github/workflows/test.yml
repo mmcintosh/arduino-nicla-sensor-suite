@@ -123,8 +123,11 @@ jobs:
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps chromium
     
-    - name: Apply database migrations
-      run: npm run db:migrate
+    - name: Setup D1 database and apply migrations
+      run: |
+        # Create local D1 instance and apply migrations
+        npx wrangler d1 migrations apply DB --local --persist-to=.wrangler/state/v3
+        echo "✅ Migrations applied"
     
     - name: Run E2E tests
       run: npm run test:e2e
