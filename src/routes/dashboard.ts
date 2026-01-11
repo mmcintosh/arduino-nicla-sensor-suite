@@ -19,6 +19,12 @@ app.get('/', async (c) => {
     "loader.load('https://raw.githubusercontent.com/arduino/ArduinoAI/main/NiclaSenseME-dashboard/models/niclaSenseME.glb',"
   );
   
+  // Remove the logo that returns 404 (or hide it)
+  html = html.replace(
+    /<img src="Logo-Arduino-Pro-inline\.svg"[^>]*>/g,
+    '<div style="font-size:10px;color:#888;text-align:right;padding:10px;">Nicla Sense ME</div>'
+  );
+  
   // Add data recording functionality
   const dataRecordingScript = `
   <script>

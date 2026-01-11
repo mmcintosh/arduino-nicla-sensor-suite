@@ -7,6 +7,7 @@ import sessionsRoutes from './routes/sessions';
 import analyticsRoutes from './routes/analytics';
 import dashboardRoute from './routes/dashboard';
 import historyRoute from './routes/history';
+import analyticsPageRoute from './routes/analytics-page';
 
 // Types for Cloudflare Workers
 export interface Env {
@@ -43,6 +44,7 @@ app.route('/api/analytics', analyticsRoutes);
 // Page Routes  
 app.route('/', dashboardRoute);
 app.route('/history', historyRoute);
+app.route('/analytics', analyticsPageRoute);
 
 // 404 handler
 app.notFound((c) => {
