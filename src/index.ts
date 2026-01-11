@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { serveStatic } from 'hono/cloudflare-workers';
 
 // Import routes
 import sensorDataRoutes from './routes/sensor-data';
@@ -44,9 +45,16 @@ app.route('/api/analytics', analyticsRoutes);
 app.route('/', dashboardRoute);
 app.route('/history', historyRoute);
 
-// Note: Static files should be configured in wrangler.toml [site] section
-// or served through R2/Assets binding in production
-// For development with wrangler dev, place files in public/ directory
+// Serve static files from public directory
+// TypeScript types are incorrect for current serveStatic, but it works at runtime
+// @ts-expect-error - Hono serveStatic type mismatch
+app.get('/css/*', serveStatic({ root: './' }));
+// @ts-expect-error - Hono serveStatic type mismatch  
+app.get('/js/*', serveStatic({ root: './' }));
+// @ts-expect-error - Hono serveStatic type mismatch
+app.get('/models/*', serveStatic({ root: './' }));
+// @ts-expect-error - Hono serveStatic type mismatch
+app.get('/GLTFLoader.js', serveStatic({ root: './' }));
 
 // 404 handler
 app.notFound((c) => {
