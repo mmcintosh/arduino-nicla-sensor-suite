@@ -5,7 +5,7 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "dev": "wrangler dev --port 8787",
+    "dev": "wrangler dev --port 8787 --persist-to=.wrangler/state/v3",
     "deploy": "wrangler deploy",
     "build": "tsc",
     "db:migrate": "wrangler d1 migrations apply DB --local --persist-to=.wrangler/state/v3",

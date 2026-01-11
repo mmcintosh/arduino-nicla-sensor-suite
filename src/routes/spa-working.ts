@@ -48,39 +48,69 @@ app.get('/', async (c) => {
     });
     
     async function startRecording() {
-      const duration = prompt('How many minutes to record?', '5');
-      if (!duration) return;
+      const duration = prompt('Enter recording duration in minutes (e.g., 5 for 5 minutes):', '5');
+      if (!duration || isNaN(parseInt(duration))) {
+        alert('Please enter a valid number of minutes');
+        return;
+      }
       
       try {
         const response = await fetch('/api/sessions/start', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({
+            name: 'Recording ' + new Date().toLocaleString(),
             duration: parseInt(duration),
             device_name: 'Nicla Sense ME',
             device_id: null
           })
         });
         
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ Session start failed:', response.status, errorText);
+          alert('Failed to start recording: ' + errorText);
+          return;
+        }
+        
         const data = await response.json();
-        currentSessionId = data.sessionId;
+        console.log('✅ Session response:', data);
+        
+        currentSessionId = data.sessionId || data.session?.id;
+        
+        if (!currentSessionId) {
+          console.error('❌ No session ID in response:', data);
+          alert('Failed to get session ID');
+          return;
+        }
+        
         isRecording = true;
         
         recordButton.textContent = 'STOP RECORDING';
         recordButton.style.background = '#ff4444';
         
-        console.log('Recording started! Session ID:', currentSessionId);
+        console.log('✅ Recording started! Session ID:', currentSessionId);
         
-        // Hook into existing handleIncoming
-        if (typeof window.originalHandleIncoming === 'undefined') {
-          window.originalHandleIncoming = window.handleIncoming;
-          window.handleIncoming = function(sensor, dataReceived) {
-            window.originalHandleIncoming(sensor, dataReceived);
-            if (isRecording && currentSessionId) {
-              recordSensorData(sensor, dataReceived);
+        // Wait for handleIncoming to be defined
+        setTimeout(() => {
+          // Hook into existing handleIncoming
+          if (typeof window.handleIncoming === 'function') {
+            if (typeof window.originalHandleIncoming === 'undefined') {
+              console.log('🔧 Hooking into handleIncoming...');
+              window.originalHandleIncoming = window.handleIncoming;
+              window.handleIncoming = function(sensor, dataReceived) {
+                window.originalHandleIncoming(sensor, dataReceived);
+                if (isRecording && currentSessionId) {
+                  console.log('📊 Capturing data from sensor:', sensor.uuid);
+                  recordSensorData(sensor, dataReceived);
+                }
+              };
+              console.log('✅ Recording hook installed!');
             }
-          };
-        }
+          } else {
+            console.error('❌ handleIncoming function not found! Recording will not capture data.');
+          }
+        }, 1000);
       } catch (error) {
         console.error('Failed to start recording:', error);
         alert('Failed to start recording: ' + error.message);
@@ -108,6 +138,8 @@ app.get('/', async (c) => {
     }
     
     function recordSensorData(sensor, dataReceived) {
+      console.log('🎯 Recording sensor data...', sensor.uuid);
+      
       const reading = {
         session_id: currentSessionId,
         timestamp: new Date().toISOString(),
@@ -120,6 +152,8 @@ app.get('/', async (c) => {
                      sensor.uuid.includes('9002') ? 'co2' :
                      sensor.uuid.includes('9003') ? 'gas' : 'unknown'
       };
+      
+      console.log('📝 Sensor type:', reading.sensor_type);
       
       // Parse the data based on sensor type
       if (reading.sensor_type === 'temperature' || reading.sensor_type === 'pressure' || reading.sensor_type === 'air_quality') {
@@ -135,8 +169,10 @@ app.get('/', async (c) => {
       }
       
       dataBuffer.push(reading);
+      console.log('📦 Buffer size:', dataBuffer.length);
       
       if (dataBuffer.length >= BUFFER_SIZE) {
+        console.log('🚀 Buffer full, flushing...');
         flushDataBuffer();
       }
     }
@@ -144,18 +180,25 @@ app.get('/', async (c) => {
     async function flushDataBuffer() {
       if (dataBuffer.length === 0) return;
       
+      console.log('📤 Flushing', dataBuffer.length, 'readings to server...');
       const batch = [...dataBuffer];
       dataBuffer = [];
       
       try {
-        await fetch('/api/sensor-data/batch', {
+        const response = await fetch('/api/sensor-data/batch', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({readings: batch})
         });
-        console.log('Sent batch of', batch.length, 'readings');
+        
+        if (response.ok) {
+          console.log('✅ Sent batch of', batch.length, 'readings');
+        } else {
+          console.error('❌ Server rejected batch:', response.status, await response.text());
+          dataBuffer.unshift(...batch);
+        }
       } catch (error) {
-        console.error('Failed to send batch:', error);
+        console.error('❌ Failed to send batch:', error);
         dataBuffer.unshift(...batch);
       }
     }
@@ -205,11 +248,16 @@ app.get('/history', async (c) => {
     async function loadSessions() {
       try {
         const response = await fetch('/api/sessions');
-        const sessions = await response.json();
+        const data = await response.json();
+        
+        console.log('Sessions response:', data);
+        
+        // API returns paginated data: { sessions: [...], pagination: {...} }
+        const sessions = data.sessions || data;
         
         const container = document.getElementById('sessions');
         
-        if (sessions.length === 0) {
+        if (!sessions || sessions.length === 0) {
           container.innerHTML = '<p>No sessions recorded yet</p>';
           return;
         }
@@ -271,11 +319,15 @@ app.get('/analytics', async (c) => {
         const response = await fetch('/api/analytics/summary');
         const summary = await response.json();
         
+        console.log('📈 Analytics summary:', summary);
+        
         document.getElementById('stats').innerHTML = 
           '<div class="stat"><div class="stat-value">' + (summary.total_sessions || 0) + '</div>Total Sessions</div>' +
           '<div class="stat"><div class="stat-value">' + (summary.total_readings || 0) + '</div>Total Readings</div>' +
           '<div class="stat"><div class="stat-value">' + (summary.avg_duration_minutes?.toFixed(1) || '0') + '</div>Avg Duration (min)</div>' +
           '<div class="stat"><div class="stat-value">' + (summary.active_sessions || 0) + '</div>Active Sessions</div>';
+        
+        console.log('📊 Sensor averages:', summary.sensor_averages);
         
         if (summary.sensor_averages && summary.sensor_averages.length > 0) {
           document.getElementById('sensors').innerHTML = '<h2>Sensor Averages</h2>' +
@@ -289,7 +341,8 @@ app.get('/analytics', async (c) => {
               '</div>'
             ).join('');
         } else {
-          document.getElementById('sensors').innerHTML = '<p>No sensor data yet. Start recording!</p>';
+          console.warn('⚠️ No sensor averages found');
+          document.getElementById('sensors').innerHTML = '<p>No sensor data yet. Check console for details.</p>';
         }
         
       } catch (error) {
