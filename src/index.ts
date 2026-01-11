@@ -5,7 +5,7 @@ import { cors } from 'hono/cors';
 import sensorDataRoutes from './routes/sensor-data';
 import sessionsRoutes from './routes/sessions';
 import analyticsRoutes from './routes/analytics';
-import spaRoute from './routes/spa';
+import spaRoute from './routes/spa-working'; // Using simpler working version
 
 // Types for Cloudflare Workers
 export interface Env {
