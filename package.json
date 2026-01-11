@@ -12,8 +12,12 @@
     "db:migrate:prod": "wrangler d1 migrations apply DB --remote",
     "db:studio": "wrangler d1 execute DB --local --command=\"SELECT * FROM sessions\"",
     "db:migration:create": "node scripts/create-migration.js",
-    "test": "vitest",
+    "test": "vitest run",
     "test:watch": "vitest --watch",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:api": "vitest run --grep 'API'",
+    "test:db": "vitest run --grep 'Database'",
     "lint": "eslint src --ext .ts,.tsx",
     "format": "prettier --write \"src/**/*.{ts,tsx,json}\""
   },
@@ -27,9 +31,12 @@
     "typescript": "^5.3.3",
     "wrangler": "^3.87.0",
     "vitest": "^1.0.0",
+    "@vitest/ui": "^1.0.0",
     "eslint": "^8.55.0",
     "prettier": "^3.1.0",
-    "drizzle-kit": "^0.24.0"
+    "drizzle-kit": "^0.24.0",
+    "msw": "^2.0.0",
+    "@cloudflare/vitest-pool-workers": "^0.1.0"
   },
   "keywords": [
     "iot",
