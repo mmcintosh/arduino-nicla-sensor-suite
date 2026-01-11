@@ -25,28 +25,57 @@ app.get('/', async (c) => {
     '<div style="font-size:10px;color:#888;text-align:right;padding:10px;display:flex;gap:10px;justify-content:flex-end;"><a href="/history" style="color:#d8f41d;text-decoration:none;">📊 History</a><a href="/analytics" style="color:#d8f41d;text-decoration:none;">📈 Analytics</a></div>'
   );
   
-  // Add data recording functionality
+  // Add data recording functionality - MUST wait for page to fully load
   const dataRecordingScript = `
   <script>
-    // Data recording state
-    let currentSessionId = null;
-    let isRecording = false;
-    let recordingStartTime = null;
-    let dataBuffer = [];
-    const BUFFER_SIZE = 10; // Send data every 10 readings
-    
-    // Add recording button to status bar - positioned to the right of PAIR button
-    window.addEventListener('DOMContentLoaded', function() {
+    // Wait for ALL scripts to load including handleIncoming
+    setTimeout(function() {
+      console.log('🔧 Initializing recording system...');
+      
+      // Data recording state
+      window.currentSessionId = null;
+      window.isRecording = false;
+      window.recordingStartTime = null;
+      window.dataBuffer = [];
+      const BUFFER_SIZE = 10;
+      
+      // Check if handleIncoming exists
+      if (typeof window.handleIncoming !== 'function') {
+        console.error('❌ handleIncoming not found! Waiting longer...');
+        setTimeout(arguments.callee, 1000);
+        return;
+      }
+      
+      console.log('✅ handleIncoming found! Installing recording wrapper...');
+      
+      // Store original
+      const originalHandleIncoming = window.handleIncoming;
+      
+      // Replace with wrapper
+      window.handleIncoming = function(sensor, dataReceived) {
+        // Call original
+        originalHandleIncoming.call(this, sensor, dataReceived);
+        
+        // Record if active
+        if (window.isRecording && window.currentSessionId) {
+          console.log('📊 Recording data from sensor');
+          window.recordSensorData(sensor);
+        }
+      };
+      
+      console.log('✅ Recording wrapper installed!');
+      
+      // Add recording button
       const pairBtn = document.getElementById('pairButton');
       const recordBtn = document.createElement('button');
       recordBtn.id = 'recordButton';
       recordBtn.innerHTML = '⏺ START RECORDING';
       recordBtn.style.cssText = 'background:#ff4444;color:#fff;border:none;padding:8px 15px;border-radius:20px;cursor:pointer;margin:8px 8px 8px 120px;font-size:12px;height:25px;position:absolute;left:0;';
       recordBtn.disabled = true;
-      recordBtn.onclick = toggleRecording;
+      recordBtn.onclick = window.toggleRecording;
       pairBtn.parentNode.appendChild(recordBtn);
       
-      // Enable recording button only when paired
+      // Enable after pairing
       const originalConnect = window.connect;
       window.connect = async function() {
         await originalConnect();
@@ -55,69 +84,63 @@ app.get('/', async (c) => {
       };
       
       recordBtn.style.opacity = '0.5';
-    });
+      console.log('✅ Recording button added!');
+      
+    }, 2000); // Wait 2 seconds for page to fully initialize
     
-    async function toggleRecording() {
+    window.toggleRecording = async function() {
       const btn = document.getElementById('recordButton');
-      if (!isRecording) {
-        // Start recording
+      if (!window.isRecording) {
         const sessionName = prompt('Enter session name:', 'Session ' + new Date().toLocaleString());
         if (!sessionName) return;
         
         try {
+          console.log('🎬 Starting recording:', sessionName);
           const response = await fetch('/api/sessions/start', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: sessionName, notes: 'Live recording from dashboard' })
+            body: JSON.stringify({ name: sessionName, notes: 'Live recording' })
           });
           const data = await response.json();
-          currentSessionId = data.sessionId;
-          isRecording = true;
-          recordingStartTime = Date.now();
+          console.log('✅ Session created:', data);
+          window.currentSessionId = data.sessionId;
+          window.isRecording = true;
+          window.recordingStartTime = Date.now();
           btn.innerHTML = '⏹ STOP RECORDING';
           btn.style.background = '#44ff44';
-          snack('Recording started: ' + sessionName, 0);
+          snack('Recording: ' + sessionName, 0);
+          console.log('🔴 RECORDING ACTIVE - ID:', window.currentSessionId);
         } catch (error) {
-          snack('Failed to start recording: ' + error.message, 1);
+          console.error('❌ Start failed:', error);
+          snack('Failed: ' + error.message, 1);
         }
       } else {
-        // Stop recording
-        await flushDataBuffer();
+        console.log('⏹ Stopping recording...');
+        await window.flushDataBuffer();
         try {
-          await fetch('/api/sessions/' + currentSessionId + '/stop', { method: 'POST' });
+          await fetch('/api/sessions/' + window.currentSessionId + '/stop', { method: 'POST' });
           btn.innerHTML = '⏺ START RECORDING';
           btn.style.background = '#ff4444';
-          snack('Recording stopped. ' + dataBuffer.length + ' readings saved.', 0);
-          isRecording = false;
-          currentSessionId = null;
-          dataBuffer = [];
+          snack('Recording stopped', 0);
+          console.log('✅ Stopped');
+          window.isRecording = false;
+          window.currentSessionId = null;
+          window.dataBuffer = [];
         } catch (error) {
-          snack('Failed to stop recording: ' + error.message, 1);
+          console.error('❌ Stop failed:', error);
         }
-      }
-    }
-    
-    // Hook into the original handleIncoming function
-    const originalHandleIncoming = window.handleIncoming || function(){};
-    window.handleIncoming = function(sensor, dataReceived) {
-      originalHandleIncoming(sensor, dataReceived);
-      
-      if (isRecording && currentSessionId) {
-        recordSensorData(sensor);
       }
     };
     
-    function recordSensorData(sensor) {
+    window.recordSensorData = function(sensor) {
       const sensorName = Object.keys(NiclaSenseME).find(key => NiclaSenseME[key] === sensor);
       if (!sensorName) return;
       
-      const columns = Object.keys(sensor.data);
       const reading = { 
-        sessionId: currentSessionId,
+        sessionId: window.currentSessionId,
         timestamp: Date.now()
       };
       
-      // Map sensor data to API format
       if (sensorName === 'accelerometer') {
         reading.accelerometer = {
           x: sensor.data.Ax[sensor.data.Ax.length - 1],
@@ -151,21 +174,22 @@ app.get('/', async (c) => {
         reading.gas = sensor.data.gas[sensor.data.gas.length - 1];
       }
       
-      dataBuffer.push(reading);
+      window.dataBuffer.push(reading);
       
-      if (dataBuffer.length >= BUFFER_SIZE) {
-        flushDataBuffer();
+      if (window.dataBuffer.length >= 10) {
+        window.flushDataBuffer();
       }
-    }
+    };
     
-    async function flushDataBuffer() {
-      if (dataBuffer.length === 0 || !currentSessionId) return;
+    window.flushDataBuffer = async function() {
+      if (window.dataBuffer.length === 0 || !window.currentSessionId) return;
       
-      const toSend = [...dataBuffer];
-      dataBuffer = [];
+      const toSend = [...window.dataBuffer];
+      window.dataBuffer = [];
+      
+      console.log('💾 Sending', toSend.length, 'readings to API...');
       
       try {
-        // Send each reading individually to match API format
         for (const reading of toSend) {
           await fetch('/api/sensor-data', {
             method: 'POST',
@@ -185,14 +209,17 @@ app.get('/', async (c) => {
             })
           });
         }
+        console.log('✅ Data sent successfully!');
       } catch (error) {
-        console.error('Failed to send data:', error);
+        console.error('❌ Failed to send data:', error);
       }
-    }
+    };
     
-    // Flush buffer periodically
     setInterval(() => {
-      if (isRecording) flushDataBuffer();
+      if (window.isRecording) {
+        console.log('⏰ Auto-flush, buffer:', window.dataBuffer.length);
+        window.flushDataBuffer();
+      }
     }, 5000);
   </script>`;
   
