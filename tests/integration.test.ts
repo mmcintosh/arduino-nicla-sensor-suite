@@ -1,8 +1,8 @@
 // Integration Tests - Complete Workflows
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Hono } from 'hono';
-import app from '../../src/index';
-import { createMockEnv, mockSensorReading } from '../fixtures/mock-data';
+import app from '../src/index';
+import { createMockEnv, mockSensorReading } from './fixtures/mock-data';
 
 describe('Integration Tests - Complete Workflows', () => {
   let mockEnv: any;

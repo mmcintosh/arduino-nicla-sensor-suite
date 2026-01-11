@@ -42,9 +42,14 @@ describe('API - Analytics Endpoints', () => {
       const res = await app.fetch(req, mockEnv);
       const data = await res.json();
 
+      expect(res.status).toBe(200);
+      expect(data.statistics).toBeDefined();
       expect(data.statistics.temp_min).toBeDefined();
       expect(data.statistics.temp_max).toBeDefined();
       expect(data.statistics.temp_avg).toBeDefined();
+      expect(typeof data.statistics.temp_min).toBe('number');
+      expect(typeof data.statistics.temp_max).toBe('number');
+      expect(typeof data.statistics.temp_avg).toBe('number');
     });
 
     it('should return 404 for non-existent session', async () => {
@@ -155,8 +160,10 @@ describe('API - Analytics Endpoints', () => {
     it('should return 404 for non-existent session', async () => {
       const req = new Request('http://localhost/api/analytics/export/non-existent');
       const res = await app.fetch(req, mockEnv);
+      const data = await res.json();
 
       expect(res.status).toBe(404);
+      expect(data.error).toBe('Session not found');
     });
   });
 });

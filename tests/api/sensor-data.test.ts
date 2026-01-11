@@ -134,7 +134,7 @@ describe('API - Sensor Data Endpoints', () => {
     });
 
     it('should handle large batches', async () => {
-      const largeB atch = Array.from({ length: 100 }, (_, i) => ({
+      const largeBatch = Array.from({ length: 100 }, (_, i) => ({
         ...mockSensorReading,
         timestamp: Date.now() + i * 1000
       }));
