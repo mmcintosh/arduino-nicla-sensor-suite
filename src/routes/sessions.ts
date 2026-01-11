@@ -83,8 +83,8 @@ app.post('/start', async (c) => {
     `).bind(
       id,
       name,
-      device_name,
-      device_id,
+      device_name || null,
+      device_id || null,
       now,
       notes || null,
       tags ? JSON.stringify(tags) : null,
@@ -94,6 +94,7 @@ app.post('/start', async (c) => {
 
     return c.json({
       success: true,
+      sessionId: id,  // Add this for frontend compatibility
       session: {
         id,
         name,
