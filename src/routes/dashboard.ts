@@ -22,7 +22,7 @@ app.get('/', async (c) => {
   // Remove the logo that returns 404 (or hide it)
   html = html.replace(
     /<img src="Logo-Arduino-Pro-inline\.svg"[^>]*>/g,
-    '<div style="font-size:10px;color:#888;text-align:right;padding:10px;">Nicla Sense ME</div>'
+    '<div style="font-size:10px;color:#888;text-align:right;padding:10px;display:flex;gap:10px;justify-content:flex-end;"><a href="/history" style="color:#d8f41d;text-decoration:none;">📊 History</a><a href="/analytics" style="color:#d8f41d;text-decoration:none;">📈 Analytics</a></div>'
   );
   
   // Add data recording functionality
@@ -112,11 +112,44 @@ app.get('/', async (c) => {
       if (!sensorName) return;
       
       const columns = Object.keys(sensor.data);
-      const reading = { sensor: sensorName, timestamp: Date.now() };
-      columns.forEach(col => {
-        const latestValue = sensor.data[col][sensor.data[col].length - 1];
-        if (latestValue !== undefined) reading[col] = latestValue;
-      });
+      const reading = { 
+        sessionId: currentSessionId,
+        timestamp: Date.now()
+      };
+      
+      // Map sensor data to API format
+      if (sensorName === 'accelerometer') {
+        reading.accelerometer = {
+          x: sensor.data.Ax[sensor.data.Ax.length - 1],
+          y: sensor.data.Ay[sensor.data.Ay.length - 1],
+          z: sensor.data.Az[sensor.data.Az.length - 1]
+        };
+      } else if (sensorName === 'gyroscope') {
+        reading.gyroscope = {
+          x: sensor.data.x[sensor.data.x.length - 1],
+          y: sensor.data.y[sensor.data.y.length - 1],
+          z: sensor.data.z[sensor.data.z.length - 1]
+        };
+      } else if (sensorName === 'quaternion') {
+        reading.quaternion = {
+          x: sensor.data.x[sensor.data.x.length - 1],
+          y: sensor.data.y[sensor.data.y.length - 1],
+          z: sensor.data.z[sensor.data.z.length - 1],
+          w: sensor.data.w[sensor.data.w.length - 1]
+        };
+      } else if (sensorName === 'temperature') {
+        reading.temperature = sensor.data.temperature[sensor.data.temperature.length - 1];
+      } else if (sensorName === 'humidity') {
+        reading.humidity = sensor.data.humidity[sensor.data.humidity.length - 1];
+      } else if (sensorName === 'pressure') {
+        reading.pressure = sensor.data.pressure[sensor.data.pressure.length - 1];
+      } else if (sensorName === 'bsec') {
+        reading.bsec = sensor.data.bsec[sensor.data.bsec.length - 1];
+      } else if (sensorName === 'co2') {
+        reading.co2 = sensor.data.co2[sensor.data.co2.length - 1];
+      } else if (sensorName === 'gas') {
+        reading.gas = sensor.data.gas[sensor.data.gas.length - 1];
+      }
       
       dataBuffer.push(reading);
       
@@ -132,14 +165,26 @@ app.get('/', async (c) => {
       dataBuffer = [];
       
       try {
-        await fetch('/api/sensor-data', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sessionId: currentSessionId,
-            readings: toSend
-          })
-        });
+        // Send each reading individually to match API format
+        for (const reading of toSend) {
+          await fetch('/api/sensor-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              session_id: reading.sessionId,
+              timestamp: reading.timestamp,
+              accelerometer: reading.accelerometer,
+              gyroscope: reading.gyroscope,
+              quaternion: reading.quaternion,
+              temperature: reading.temperature,
+              humidity: reading.humidity,
+              pressure: reading.pressure,
+              bsec: reading.bsec,
+              co2: reading.co2,
+              gas: reading.gas
+            })
+          });
+        }
       } catch (error) {
         console.error('Failed to send data:', error);
       }

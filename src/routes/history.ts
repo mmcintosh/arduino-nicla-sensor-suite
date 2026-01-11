@@ -326,13 +326,51 @@ app.get('/', async (c) => {
         
         modalTitle.textContent = sessionData.session.name || 'Session Details';
         
-        // Group readings by sensor type
-        const groupedData = {};
+        if (!readings.readings || readings.readings.length === 0) {
+          modalBody.innerHTML = \`
+            <div>
+              <p><strong>Session ID:</strong> \${sessionData.session.id}</p>
+              <p><strong>Started:</strong> \${new Date(sessionData.session.started_at).toLocaleString()}</p>
+              <p><strong>Status:</strong> <span class="status-badge status-\${sessionData.session.status}">\${sessionData.session.status}</span></p>
+              <hr style="border-color:#333;">
+              <div class="empty-state">
+                <h2>No sensor data recorded</h2>
+                <p>This session has no readings yet.</p>
+              </div>
+            </div>
+          \`;
+          return;
+        }
+
+        // Group readings by sensor type - each column represents a sensor
+        const sensorGroups = {
+          'Temperature': [],
+          'Humidity': [],
+          'Pressure': [],
+          'Accelerometer X': [],
+          'Accelerometer Y': [],
+          'Accelerometer Z': [],
+          'Gyroscope X': [],
+          'Gyroscope Y': [],
+          'Gyroscope Z': [],
+          'Air Quality (BSEC)': [],
+          'CO2': [],
+          'Gas': []
+        };
+
         readings.readings.forEach(r => {
-          if (!groupedData[r.sensor_type]) {
-            groupedData[r.sensor_type] = [];
-          }
-          groupedData[r.sensor_type].push(r);
+          if (r.temperature !== null) sensorGroups['Temperature'].push({ timestamp: r.timestamp, value: r.temperature });
+          if (r.humidity !== null) sensorGroups['Humidity'].push({ timestamp: r.timestamp, value: r.humidity });
+          if (r.pressure !== null) sensorGroups['Pressure'].push({ timestamp: r.timestamp, value: r.pressure });
+          if (r.accel_x !== null) sensorGroups['Accelerometer X'].push({ timestamp: r.timestamp, value: r.accel_x });
+          if (r.accel_y !== null) sensorGroups['Accelerometer Y'].push({ timestamp: r.timestamp, value: r.accel_y });
+          if (r.accel_z !== null) sensorGroups['Accelerometer Z'].push({ timestamp: r.timestamp, value: r.accel_z });
+          if (r.gyro_x !== null) sensorGroups['Gyroscope X'].push({ timestamp: r.timestamp, value: r.gyro_x });
+          if (r.gyro_y !== null) sensorGroups['Gyroscope Y'].push({ timestamp: r.timestamp, value: r.gyro_y });
+          if (r.gyro_z !== null) sensorGroups['Gyroscope Z'].push({ timestamp: r.timestamp, value: r.gyro_z });
+          if (r.bsec !== null) sensorGroups['Air Quality (BSEC)'].push({ timestamp: r.timestamp, value: r.bsec });
+          if (r.co2 !== null) sensorGroups['CO2'].push({ timestamp: r.timestamp, value: r.co2 });
+          if (r.gas !== null) sensorGroups['Gas'].push({ timestamp: r.timestamp, value: r.gas });
         });
 
         modalBody.innerHTML = \`
@@ -342,20 +380,22 @@ app.get('/', async (c) => {
             <p><strong>Status:</strong> <span class="status-badge status-\${sessionData.session.status}">\${sessionData.session.status}</span></p>
             <p><strong>Total Readings:</strong> \${readings.readings.length}</p>
             <hr style="border-color:#333;">
-            <h3>Sensor Data Preview</h3>
+            <h3>Sensor Data Charts</h3>
             <div id="charts"></div>
           </div>
         \`;
 
-        // Create charts for each sensor type
+        // Create charts for each sensor type that has data
         const chartsDiv = document.getElementById('charts');
-        Object.keys(groupedData).forEach(sensorType => {
-          const chartId = 'chart-' + sensorType;
-          chartsDiv.innerHTML += \`<div id="\${chartId}" class="chart-container" style="height:300px;"></div>\`;
-          
-          setTimeout(() => {
-            plotSensorData(chartId, sensorType, groupedData[sensorType]);
-          }, 100);
+        Object.keys(sensorGroups).forEach(sensorName => {
+          if (sensorGroups[sensorName].length > 0) {
+            const chartId = 'chart-' + sensorName.replace(/\s/g, '-');
+            chartsDiv.innerHTML += \`<div id="\${chartId}" class="chart-container" style="height:300px;"></div>\`;
+            
+            setTimeout(() => {
+              plotSensorData(chartId, sensorName, sensorGroups[sensorName]);
+            }, 100);
+          }
         });
 
       } catch (error) {
@@ -363,36 +403,29 @@ app.get('/', async (c) => {
       }
     }
 
-    function plotSensorData(chartId, sensorType, readings) {
-      const timestamps = readings.map(r => new Date(r.timestamp));
-      const traces = [];
+    function plotSensorData(chartId, sensorName, data) {
+      const timestamps = data.map(d => new Date(d.timestamp));
+      const values = data.map(d => d.value);
 
-      // Extract all value columns (excluding id, session_id, sensor_type, timestamp)
-      const valueKeys = Object.keys(readings[0]).filter(k => 
-        !['id', 'session_id', 'sensor_type', 'timestamp', 'created_at'].includes(k) && readings[0][k] !== null
-      );
-
-      valueKeys.forEach(key => {
-        traces.push({
-          x: timestamps,
-          y: readings.map(r => r[key]),
-          name: key,
-          mode: 'lines',
-          line: { width: 2 }
-        });
-      });
+      const trace = {
+        x: timestamps,
+        y: values,
+        name: sensorName,
+        mode: 'lines',
+        line: { width: 2, color: '#d8f41d' }
+      };
 
       const layout = {
-        title: sensorType + ' Data',
+        title: sensorName,
         plot_bgcolor: '#111',
         paper_bgcolor: '#111',
         font: { color: '#fff' },
-        xaxis: { gridcolor: '#333' },
-        yaxis: { gridcolor: '#333' },
+        xaxis: { gridcolor: '#333', title: 'Time' },
+        yaxis: { gridcolor: '#333', title: 'Value' },
         margin: { l: 50, r: 50, b: 50, t: 50 }
       };
 
-      Plotly.newPlot(chartId, traces, layout, { responsive: true });
+      Plotly.newPlot(chartId, [trace], layout, { responsive: true });
     }
 
     async function exportSession(sessionId) {

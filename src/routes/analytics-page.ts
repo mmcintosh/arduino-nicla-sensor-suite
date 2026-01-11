@@ -115,13 +115,28 @@ app.get('/', async (c) => {
 
     <!-- Charts -->
     <div class="widget">
-      <h2>Sessions Over Time</h2>
-      <div id="sessionsTimeChart" class="chart-container" style="height:400px;"></div>
+      <h2>Average Sensor Values Across All Sessions</h2>
+      <div id="sensorAveragesChart" class="chart-container" style="height:400px;"></div>
     </div>
 
     <div class="widget">
-      <h2>Sensor Data Trends</h2>
-      <div id="sensorTrendsChart" class="chart-container" style="height:400px;"></div>
+      <h2>Temperature Trends</h2>
+      <div id="temperatureChart" class="chart-container" style="height:350px;"></div>
+    </div>
+
+    <div class="widget">
+      <h2>Humidity Trends</h2>
+      <div id="humidityChart" class="chart-container" style="height:350px;"></div>
+    </div>
+
+    <div class="widget">
+      <h2>Pressure Trends</h2>
+      <div id="pressureChart" class="chart-container" style="height:350px;"></div>
+    </div>
+
+    <div class="widget">
+      <h2>Air Quality (BSEC) Trends</h2>
+      <div id="bsecChart" class="chart-container" style="height:350px;"></div>
     </div>
 
     <div class="widget">
@@ -186,16 +201,123 @@ app.get('/', async (c) => {
             document.getElementById('avgDuration').textContent = formatDuration(avgMs);
           }
 
-          // Plot sessions over time
-          plotSessionsOverTime(sessionsData.sessions);
-
-          // Load and plot sensor trends
-          loadSensorTrends(sessionsData.sessions);
+          // Load sensor data from all completed sessions
+          await loadAllSensorData(completedSessions);
         }
 
       } catch (error) {
         console.error('Error loading analytics:', error);
       }
+    }
+
+    async function loadAllSensorData(sessions) {
+      const allSensorData = {
+        temperature: [],
+        humidity: [],
+        pressure: [],
+        bsec: [],
+        co2: [],
+        gas: []
+      };
+
+      // Fetch data from each session
+      for (const session of sessions.slice(0, 10)) { // Limit to 10 most recent
+        try {
+          const dataRes = await fetch(\`/api/sessions/\${session.id}/data?limit=1000\`);
+          const data = await dataRes.json();
+
+          if (data.readings && data.readings.length > 0) {
+            data.readings.forEach(r => {
+              if (r.temperature !== null) allSensorData.temperature.push({ time: r.timestamp, value: r.temperature, session: session.name });
+              if (r.humidity !== null) allSensorData.humidity.push({ time: r.timestamp, value: r.humidity, session: session.name });
+              if (r.pressure !== null) allSensorData.pressure.push({ time: r.timestamp, value: r.pressure, session: session.name });
+              if (r.bsec !== null) allSensorData.bsec.push({ time: r.timestamp, value: r.bsec, session: session.name });
+              if (r.co2 !== null) allSensorData.co2.push({ time: r.timestamp, value: r.co2, session: session.name });
+              if (r.gas !== null) allSensorData.gas.push({ time: r.timestamp, value: r.gas, session: session.name });
+            });
+          }
+        } catch (error) {
+          console.error('Error loading session data:', error);
+        }
+      }
+
+      // Plot sensor averages
+      plotSensorAverages(allSensorData);
+
+      // Plot individual sensor trends
+      plotSensorTrend('temperatureChart', 'Temperature (°C)', allSensorData.temperature);
+      plotSensorTrend('humidityChart', 'Humidity (%)', allSensorData.humidity);
+      plotSensorTrend('pressureChart', 'Pressure (kPa)', allSensorData.pressure);
+      plotSensorTrend('bsecChart', 'Air Quality (BSEC)', allSensorData.bsec);
+    }
+
+    function plotSensorAverages(sensorData) {
+      const sensorNames = [];
+      const avgValues = [];
+      const colors = ['#d8f41d', '#44ff44', '#4488ff', '#ff44ff', '#ff8844', '#44ffff'];
+
+      Object.keys(sensorData).forEach((sensor, idx) => {
+        if (sensorData[sensor].length > 0) {
+          const avg = sensorData[sensor].reduce((sum, d) => sum + d.value, 0) / sensorData[sensor].length;
+          sensorNames.push(sensor.toUpperCase());
+          avgValues.push(avg.toFixed(2));
+        }
+      });
+
+      if (sensorNames.length === 0) {
+        document.getElementById('sensorAveragesChart').innerHTML = 
+          '<div style="text-align:center;padding:60px;color:#666;">No sensor data available yet. Start recording!</div>';
+        return;
+      }
+
+      const trace = {
+        x: sensorNames,
+        y: avgValues,
+        type: 'bar',
+        marker: { color: colors.slice(0, sensorNames.length) },
+        text: avgValues.map(v => v.toString()),
+        textposition: 'outside'
+      };
+
+      const layout = {
+        plot_bgcolor: '#1a1a1a',
+        paper_bgcolor: '#1a1a1a',
+        font: { color: '#fff', family: 'Roboto Mono' },
+        xaxis: { gridcolor: '#333', title: 'Sensor Type' },
+        yaxis: { gridcolor: '#333', title: 'Average Value' },
+        margin: { l: 50, r: 20, b: 80, t: 20 }
+      };
+
+      Plotly.newPlot('sensorAveragesChart', [trace], layout, { responsive: true });
+    }
+
+    function plotSensorTrend(chartId, title, data) {
+      if (!data || data.length === 0) {
+        document.getElementById(chartId).innerHTML = 
+          '<div style="text-align:center;padding:60px;color:#666;">No data available for this sensor</div>';
+        return;
+      }
+
+      const trace = {
+        x: data.map(d => new Date(d.time)),
+        y: data.map(d => d.value),
+        mode: 'lines+markers',
+        line: { width: 2, color: '#d8f41d' },
+        marker: { size: 4 },
+        name: title
+      };
+
+      const layout = {
+        title: { text: title, font: { color: '#d8f41d' } },
+        plot_bgcolor: '#1a1a1a',
+        paper_bgcolor: '#1a1a1a',
+        font: { color: '#fff', family: 'Roboto Mono' },
+        xaxis: { gridcolor: '#333', title: 'Time' },
+        yaxis: { gridcolor: '#333', title: 'Value' },
+        margin: { l: 50, r: 20, b: 50, t: 50 }
+      };
+
+      Plotly.newPlot(chartId, [trace], layout, { responsive: true });
     }
 
     function formatDuration(ms) {
@@ -208,94 +330,6 @@ app.get('/', async (c) => {
       if (hours > 0) return \`\${hours}h \${minutes % 60}m\`;
       if (minutes > 0) return \`\${minutes}m\`;
       return \`\${seconds}s\`;
-    }
-
-    function plotSessionsOverTime(sessions) {
-      // Group sessions by date
-      const sessionsByDate = {};
-      sessions.forEach(session => {
-        const date = new Date(session.started_at).toLocaleDateString();
-        sessionsByDate[date] = (sessionsByDate[date] || 0) + 1;
-      });
-
-      const dates = Object.keys(sessionsByDate).sort();
-      const counts = dates.map(d => sessionsByDate[d]);
-
-      const trace = {
-        x: dates,
-        y: counts,
-        type: 'bar',
-        marker: { color: '#d8f41d' },
-        name: 'Sessions'
-      };
-
-      const layout = {
-        plot_bgcolor: '#1a1a1a',
-        paper_bgcolor: '#1a1a1a',
-        font: { color: '#fff', family: 'Roboto Mono' },
-        xaxis: { gridcolor: '#333', title: 'Date' },
-        yaxis: { gridcolor: '#333', title: 'Number of Sessions' },
-        margin: { l: 50, r: 20, b: 50, t: 20 }
-      };
-
-      Plotly.newPlot('sessionsTimeChart', [trace], layout, { responsive: true });
-    }
-
-    async function loadSensorTrends(sessions) {
-      if (sessions.length === 0) return;
-
-      // Get data from the most recent completed session
-      const recentSession = sessions.find(s => s.status === 'completed') || sessions[0];
-      
-      try {
-        const dataRes = await fetch(\`/api/sessions/\${recentSession.id}/data?limit=1000\`);
-        const data = await dataRes.json();
-
-        if (data.readings && data.readings.length > 0) {
-          // Group by sensor type
-          const sensorTypes = [...new Set(data.readings.map(r => r.sensor_type))];
-          
-          const traces = sensorTypes.map(sensorType => {
-            const readings = data.readings.filter(r => r.sensor_type === sensorType);
-            
-            // Get first numeric value column
-            const valueKey = Object.keys(readings[0]).find(k => 
-              typeof readings[0][k] === 'number' && 
-              !['id', 'session_id', 'timestamp', 'created_at'].includes(k)
-            );
-
-            if (!valueKey) return null;
-
-            return {
-              x: readings.map(r => new Date(r.timestamp)),
-              y: readings.map(r => r[valueKey]),
-              name: \`\${sensorType} (\${valueKey})\`,
-              mode: 'lines',
-              line: { width: 2 }
-            };
-          }).filter(t => t !== null);
-
-          const layout = {
-            plot_bgcolor: '#1a1a1a',
-            paper_bgcolor: '#1a1a1a',
-            font: { color: '#fff', family: 'Roboto Mono' },
-            xaxis: { gridcolor: '#333', title: 'Time' },
-            yaxis: { gridcolor: '#333', title: 'Value' },
-            margin: { l: 50, r: 20, b: 50, t: 20 },
-            showlegend: true,
-            legend: { x: 0, y: 1 }
-          };
-
-          Plotly.newPlot('sensorTrendsChart', traces, layout, { responsive: true });
-        } else {
-          document.getElementById('sensorTrendsChart').innerHTML = 
-            '<div style="text-align:center;padding:60px;color:#666;">No sensor data available yet</div>';
-        }
-      } catch (error) {
-        console.error('Error loading sensor trends:', error);
-        document.getElementById('sensorTrendsChart').innerHTML = 
-          '<div style="text-align:center;padding:60px;color:#666;">Error loading sensor data</div>';
-      }
     }
   </script>
 </body>
