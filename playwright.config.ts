@@ -51,10 +51,6 @@ export default defineConfig({
       name: 'chromium',
       use: { 
         ...devices['Desktop Chrome'],
-        // Enable permissions for Web Bluetooth API testing
-        contextOptions: {
-          permissions: ['bluetooth']
-        }
       },
     },
   ],
