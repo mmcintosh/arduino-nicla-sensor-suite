@@ -5,10 +5,10 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --port 8787",
     "deploy": "wrangler deploy",
     "build": "tsc",
-    "db:migrate": "wrangler d1 migrations apply DB --local",
+    "db:migrate": "wrangler d1 migrations apply DB --local --persist-to=.wrangler/state/v3",
     "db:migrate:prod": "wrangler d1 migrations apply DB --remote",
     "db:studio": "wrangler d1 execute DB --local --command=\"SELECT * FROM sessions\"",
     "db:migration:create": "node scripts/create-migration.js",
@@ -30,13 +30,12 @@
     "@types/node": "^20.10.0",
     "typescript": "^5.3.3",
     "wrangler": "^3.87.0",
-    "vitest": "^1.0.0",
-    "@vitest/ui": "^1.0.0",
+    "vitest": "^1.6.0",
+    "@vitest/ui": "^1.6.0",
+    "@vitest/coverage-v8": "^1.6.0",
     "eslint": "^8.55.0",
     "prettier": "^3.1.0",
-    "drizzle-kit": "^0.24.0",
-    "msw": "^2.0.0",
-    "@cloudflare/vitest-pool-workers": "^0.1.0"
+    "drizzle-kit": "^0.24.0"
   },
   "keywords": [
     "iot",

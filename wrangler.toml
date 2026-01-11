@@ -15,10 +15,10 @@ vars = { ENVIRONMENT = "production" }
 [[d1_databases]]
 binding = "DB"
 database_name = "nicla-sensor-db"
-database_id = "" # Add your D1 database ID here after creating it
+database_id = "local-db" # Local development database
 migrations_dir = "migrations"
 
-# CORS settings for Web Bluetooth
+# Static assets configuration
 [site]
 bucket = "./public"
 

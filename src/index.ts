@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { serveStatic } from 'hono/cloudflare-workers';
 
 // Import routes
 import sensorDataRoutes from './routes/sensor-data';
@@ -45,11 +44,9 @@ app.route('/api/analytics', analyticsRoutes);
 app.route('/', dashboardRoute);
 app.route('/history', historyRoute);
 
-// Serve static files (CSS, JS, models)
-app.get('/css/*', serveStatic({ root: './public' }));
-app.get('/js/*', serveStatic({ root: './public' }));
-app.get('/models/*', serveStatic({ root: './public' }));
-app.get('/GLTFLoader.js', serveStatic({ root: './' }));
+// Note: Static files should be configured in wrangler.toml [site] section
+// or served through R2/Assets binding in production
+// For development with wrangler dev, place files in public/ directory
 
 // 404 handler
 app.notFound((c) => {
