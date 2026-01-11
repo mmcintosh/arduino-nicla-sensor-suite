@@ -5,6 +5,13 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./tests/setup.ts'],
+    include: ['tests/**/*.test.ts'],  // Only include unit tests
+    exclude: [
+      'node_modules/**',
+      'dist/**',
+      '**/*.spec.ts',  // Exclude Playwright specs
+      '**/e2e/**'      // Exclude E2E directory
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
