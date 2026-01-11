@@ -3,10 +3,25 @@ import { test, expect } from '@playwright/test';
 /**
  * Analytics Page E2E Tests
  * Tests the analytics dashboard functionality
+ * Uses API mocking to avoid database dependencies
  */
 
 test.describe('Analytics Page', () => {
   test.beforeEach(async ({ page }) => {
+    // Mock API responses to avoid database dependency
+    await page.route('**/api/analytics/summary', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          totalSessions: 5,
+          activeSessions: 2,
+          totalReadings: 1234,
+          avgSessionDuration: 180000
+        })
+      });
+    });
+
     await page.goto('/analytics');
   });
 

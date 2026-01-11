@@ -3,10 +3,23 @@ import { test, expect } from '@playwright/test';
 /**
  * History Page E2E Tests
  * Tests the historical data viewer functionality
+ * Uses API mocking to avoid database dependencies
  */
 
 test.describe('History Page', () => {
   test.beforeEach(async ({ page }) => {
+    // Mock API responses
+    await page.route('**/api/sessions*', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          sessions: [],
+          total: 0
+        })
+      });
+    });
+
     await page.goto('/history');
   });
 

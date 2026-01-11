@@ -103,60 +103,52 @@ jobs:
           exit 1
         fi
 
-  # E2E Tests with Playwright (temporarily disabled - requires stable D1 state)
-  # TODO: Re-enable once D1 state persistence is fixed in CI
-  # e2e:
-  #   runs-on: ubuntu-latest
-  #   needs: [test, lint, build]
-  # TODO: Re-enable once D1 state persistence is fixed in CI
-  # e2e:
-  #   runs-on: ubuntu-latest
-  #   needs: [test, lint, build]
-  #   
-  #   steps:
-  #   - uses: actions/checkout@v4
-  #   
-  #   - name: Use Node.js
-  #     uses: actions/setup-node@v4
-  #     with:
-  #       node-version: '20.x'
-  #       cache: 'npm'
-  #   
-  #   - name: Install dependencies
-  #     run: npm ci
-  #   
-  #   - name: Install Playwright Browsers
-  #     run: npx playwright install --with-deps chromium
-  #   
-  #   - name: Setup D1 database and apply migrations
-  #     run: |
-  #       # Create local D1 instance and apply migrations
-  #       npx wrangler d1 migrations apply DB --local --persist-to=.wrangler/state/v3
-  #       echo "✅ Migrations applied"
-  #   
-  #   - name: Run E2E tests
-  #     run: npm run test:e2e
-  #   
-  #   - name: Upload test results
-  #     if: always()
-  #     uses: actions/upload-artifact@v4
-  #     with:
-  #       name: playwright-report
-  #       path: playwright-report/
-  #       retention-days: 30
-  #   
-  #   - name: Upload screenshots
-  #     if: always()
-  #     uses: actions/upload-artifact@v4
-  #     with:
-  #       name: test-screenshots
-  #       path: test-results/screenshots/
-  #       retention-days: 30
-  #   
-  #   - name: Upload videos
-  #     if: failure()
-  #     uses: actions/upload-artifact@v4
-  #     with:
-  #       name: test-videos
-  #       path: test-results/
-  #       retention-days: 30
+  # E2E Tests with Playwright
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [test, lint, build]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps chromium
+    
+    - name: Run E2E tests
+      run: npm run test:e2e
+    - name: Run E2E tests
+      run: npm run test:e2e
+    
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-report
+        path: playwright-report/
+        retention-days: 30
+    
+    - name: Upload screenshots
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-screenshots
+        path: test-results/screenshots/
+        retention-days: 30
+    
+    - name: Upload videos
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-videos
+        path: test-results/
+        retention-days: 30
+

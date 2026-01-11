@@ -3,11 +3,34 @@ import { test, expect } from '@playwright/test';
 /**
  * Dashboard E2E Tests
  * Tests the main dashboard page functionality
+ * Uses API mocking to avoid database dependencies
  */
 
 test.describe('Dashboard Page', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to dashboard before each test
+    // Mock analytics API to prevent errors on page load
+    await page.route('**/api/analytics/summary', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          totalSessions: 0,
+          activeSessions: 0,
+          totalReadings: 0,
+          avgSessionDuration: 0
+        })
+      });
+    });
+
+    await page.route('**/api/sessions*', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ sessions: [] })
+      });
+    });
+
+    // Navigate to dashboard
     await page.goto('/');
   });
 

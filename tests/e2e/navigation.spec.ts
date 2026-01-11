@@ -3,9 +3,21 @@ import { test, expect } from '@playwright/test';
 /**
  * Navigation E2E Tests
  * Tests navigation between pages
+ * Uses API mocking to avoid database dependencies
  */
 
 test.describe('Navigation Flow', () => {
+  test.beforeEach(async ({ page }) => {
+    // Mock all API endpoints to prevent errors
+    await page.route('**/api/**', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ sessions: [], totalSessions: 0 })
+      });
+    });
+  });
+
   test('should navigate from Dashboard to History page', async ({ page }) => {
     // Start at dashboard
     await page.goto('/');
