@@ -14,9 +14,11 @@
 - **Staging**: `nicla-sense-platform-staging`
 - **Production**: `nicla-sense-platform-prod`
 
-### Custom Domains (if applicable)
-- **Staging**: `staging.nicla-sensor.yourdomain.com`
-- **Production**: `nicla-sensor.yourdomain.com`
+### Custom Domains
+- **Staging**: `staging.sensorsuites.com`
+- **Production**: `nicla.sensorsuites.com` (or `sensorsuites.com`)
+
+**Note**: Domain `sensorsuites.com` is already owned and ready for production deployment.
 
 ---
 
@@ -43,9 +45,10 @@ wrangler deploy --env staging
 
 #### 4. Test Staging
 - Verify API endpoints work
-- Test Web Bluetooth connection (requires HTTPS)
+- Test Web Bluetooth connection (requires HTTPS ✅)
 - Record sample session
 - Check data in D1 database
+- **URL**: `https://staging.sensorsuites.com` (or `*.workers.dev` initially)
 
 ### Phase 2: Production Environment
 
@@ -59,10 +62,18 @@ wrangler d1 create nicla-sensor-db-prod
 wrangler d1 migrations apply nicla-sensor-db-prod --remote
 ```
 
-#### 3. Deploy to Production
+#### 3. Setup Custom Domain
+```bash
+# Configure custom domain in Cloudflare Dashboard or via wrangler
+wrangler domains add nicla.sensorsuites.com
+```
+
+#### 4. Deploy to Production
 ```bash
 wrangler deploy --env production
 ```
+
+**Production URL**: `https://nicla.sensorsuites.com` (or `https://sensorsuites.com`)
 
 ---
 
@@ -136,27 +147,33 @@ database_id = "PRODUCTION_DB_ID"
 
 ## ✅ Pre-Deployment Checklist
 
+- [ ] Domain `sensorsuites.com` added to Cloudflare account
+- [ ] DNS configured (nameservers pointing to Cloudflare)
 - [ ] Naming conventions approved
-- [ ] `wrangler.toml` configured for staging
+- [ ] `wrangler.toml` configured for staging & production
 - [ ] D1 database created (staging)
 - [ ] Migrations applied (staging)
-- [ ] All tests passing in CI
-- [ ] Custom domain ready (if applicable)
+- [ ] All tests passing in CI (64 unit + 23 E2E)
+- [ ] Custom domain routes configured
 
 ---
 
 ## 🎯 Next Actions
 
-**Waiting for your approval on:**
-1. ✅ Resource naming conventions (above)
-2. ✅ Whether to include R2 storage
-3. ✅ Whether to add KV caching
-4. ✅ Custom domain requirements
+**Confirmed:**
+- ✅ Production domain: `sensorsuites.com` (or `nicla.sensorsuites.com`)
+- ✅ Staging domain: `staging.sensorsuites.com`
+- ✅ Resource naming approved
 
-Once approved, I'll:
-1. Update `wrangler.toml` with staging config
-2. Create D1 database (staging)
-3. Deploy to Cloudflare staging
-4. Provide you with the staging URL
+**Ready to deploy:**
+1. Update `wrangler.toml` with staging/production configs
+2. Verify `sensorsuites.com` is in your Cloudflare account
+3. Create D1 databases (staging & production)
+4. Deploy to staging first
+5. Test staging environment
+6. Deploy to production
 
-**Ready to proceed?** 🚀
+**Would you like me to:**
+- Update `wrangler.toml` now?
+- Deploy to staging?
+- Setup both environments?
