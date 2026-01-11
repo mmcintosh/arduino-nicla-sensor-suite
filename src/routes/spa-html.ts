@@ -685,34 +685,46 @@ export const SPA_HTML = `<!DOCTYPE html>
     }
 
     async function setupNotifications() {
-      // Temperature
+      // Temperature - Use polling (BLERead)
       if (AppState.characteristics.TEMPERATURE) {
-        await AppState.characteristics.TEMPERATURE.startNotifications();
-        AppState.characteristics.TEMPERATURE.addEventListener('characteristicvaluechanged', (event) => {
-          const value = event.target.value.getFloat32(0, true);
-          updateSensorDisplay('temperature', value);
-          if (AppState.isRecording) recordSensorData('temperature', value);
-        });
+        setInterval(async () => {
+          try {
+            const data = await AppState.characteristics.TEMPERATURE.readValue();
+            const value = data.getFloat32(0, true);
+            updateSensorDisplay('temperature', value);
+            if (AppState.isRecording) recordSensorData('temperature', value);
+          } catch (e) {
+            console.warn('Failed to read temperature:', e);
+          }
+        }, 500);
       }
       
-      // Humidity
+      // Humidity - Use polling (BLERead)
       if (AppState.characteristics.HUMIDITY) {
-        await AppState.characteristics.HUMIDITY.startNotifications();
-        AppState.characteristics.HUMIDITY.addEventListener('characteristicvaluechanged', (event) => {
-          const value = event.target.value.getUint32(0, true);
-          updateSensorDisplay('humidity', value);
-          if (AppState.isRecording) recordSensorData('humidity', value);
-        });
+        setInterval(async () => {
+          try {
+            const data = await AppState.characteristics.HUMIDITY.readValue();
+            const value = data.getUint8(0);
+            updateSensorDisplay('humidity', value);
+            if (AppState.isRecording) recordSensorData('humidity', value);
+          } catch (e) {
+            console.warn('Failed to read humidity:', e);
+          }
+        }, 500);
       }
       
-      // Pressure
+      // Pressure - Use polling (BLERead)
       if (AppState.characteristics.PRESSURE) {
-        await AppState.characteristics.PRESSURE.startNotifications();
-        AppState.characteristics.PRESSURE.addEventListener('characteristicvaluechanged', (event) => {
-          const value = event.target.value.getFloat32(0, true);
-          updateSensorDisplay('pressure', value);
-          if (AppState.isRecording) recordSensorData('pressure', value);
-        });
+        setInterval(async () => {
+          try {
+            const data = await AppState.characteristics.PRESSURE.readValue();
+            const value = data.getFloat32(0, true);
+            updateSensorDisplay('pressure', value);
+            if (AppState.isRecording) recordSensorData('pressure', value);
+          } catch (e) {
+            console.warn('Failed to read pressure:', e);
+          }
+        }, 500);
       }
       
       // Accelerometer
@@ -751,37 +763,49 @@ export const SPA_HTML = `<!DOCTYPE html>
         });
       }
       
-      // BSEC (Air Quality)
+      // BSEC (Air Quality) - Use polling (BLERead)
       if (AppState.characteristics.BSEC) {
-        await AppState.characteristics.BSEC.startNotifications();
-        AppState.characteristics.BSEC.addEventListener('characteristicvaluechanged', (event) => {
-          const value = event.target.value.getFloat32(0, true);
-          updateSensorDisplay('bsec', value);
-          if (AppState.isRecording) recordSensorData('air_quality', value);
-        });
+        setInterval(async () => {
+          try {
+            const data = await AppState.characteristics.BSEC.readValue();
+            const value = data.getFloat32(0, true);
+            updateSensorDisplay('bsec', value);
+            if (AppState.isRecording) recordSensorData('air_quality', value);
+          } catch (e) {
+            console.warn('Failed to read BSEC:', e);
+          }
+        }, 500);
       }
       
-      // CO2
+      // CO2 - Use polling (BLERead)
       if (AppState.characteristics.CO2) {
-        await AppState.characteristics.CO2.startNotifications();
-        AppState.characteristics.CO2.addEventListener('characteristicvaluechanged', (event) => {
-          const value = event.target.value.getInt32(0, true);
-          updateSensorDisplay('co2', value);
-          if (AppState.isRecording) recordSensorData('co2', value);
-        });
+        setInterval(async () => {
+          try {
+            const data = await AppState.characteristics.CO2.readValue();
+            const value = data.getInt32(0, true);
+            updateSensorDisplay('co2', value);
+            if (AppState.isRecording) recordSensorData('co2', value);
+          } catch (e) {
+            console.warn('Failed to read CO2:', e);
+          }
+        }, 500);
       }
       
-      // Gas
+      // Gas - Use polling (BLERead)
       if (AppState.characteristics.GAS) {
-        await AppState.characteristics.GAS.startNotifications();
-        AppState.characteristics.GAS.addEventListener('characteristicvaluechanged', (event) => {
-          const value = event.target.value.getUint32(0, true);
-          updateSensorDisplay('gas', value);
-          if (AppState.isRecording) recordSensorData('gas', value);
-        });
+        setInterval(async () => {
+          try {
+            const data = await AppState.characteristics.GAS.readValue();
+            const value = data.getUint32(0, true);
+            updateSensorDisplay('gas', value);
+            if (AppState.isRecording) recordSensorData('gas', value);
+          } catch (e) {
+            console.warn('Failed to read gas:', e);
+          }
+        }, 500);
       }
       
-      console.log('✅ All notifications set up');
+      console.log('✅ All notifications and polling set up');
     }
 
     // ==========================================
