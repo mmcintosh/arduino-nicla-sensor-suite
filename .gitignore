@@ -1,10 +1,25 @@
+# Dependencies
 node_modules/
-dist/
+
+# Wrangler
 .wrangler/
-.dev.vars
-*.log
-.DS_Store
+dist/
+
+# Test artifacts
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Playwright browsers
+.playwright/
+
+# Environment
 .env
-.cache/
-wrangler.toml.backup
-*.local
+.dev.vars
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
