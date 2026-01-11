@@ -1,0 +1,31 @@
+name = "nicla-sense-platform"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Development
+[env.dev]
+vars = { ENVIRONMENT = "development" }
+
+# Production
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+# Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "nicla-sensor-db"
+database_id = "" # Add your D1 database ID here after creating it
+migrations_dir = "migrations"
+
+# CORS settings for Web Bluetooth
+[site]
+bucket = "./public"
+
+# Increase limits for sensor data
+[limits]
+cpu_ms = 50
+
+# Route configuration
+[observability]
+enabled = true
