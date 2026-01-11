@@ -826,8 +826,11 @@ export const SPA_HTML = `<!DOCTYPE html>
     }
 
     async function startRecording() {
-      const duration = prompt('Enter recording duration in minutes:', '5');
-      if (!duration) return;
+      const duration = prompt('⏱️ How many minutes do you want to record?\n\nEnter duration (e.g., 5 for 5 minutes):', '5');
+      if (!duration || isNaN(parseInt(duration))) {
+        showMessage('Invalid duration. Please enter a number.');
+        return;
+      }
       
       try {
         const response = await fetch('/api/sessions/start', {
@@ -1018,36 +1021,52 @@ export const SPA_HTML = `<!DOCTYPE html>
     }
 
     function init3DModel() {
-      const container = document.getElementById('3d');
-      const width = 192;
-      const height = 180;
-      
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-      renderer = new THREE.WebGLRenderer({alpha: true, antialias: true});
-      renderer.setSize(width, height);
-      renderer.setClearColor(0x000000, 0);
-      container.appendChild(renderer.domElement);
-      
-      const light = new THREE.AmbientLight(0xffffff, 0.5);
-      scene.add(light);
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-      directionalLight.position.set(0, 1, 1);
-      scene.add(directionalLight);
-      
-      const loader = new THREE.GLTFLoader();
-      loader.load(
-        'https://raw.githubusercontent.com/arduino/ArduinoAI/main/NiclaSenseME-dashboard/models/niclaSenseME.glb',
-        (gltf) => {
-          mesh = gltf.scene;
-          mesh.scale.set(100, 100, 100);
-          scene.add(mesh);
-          camera.position.z = 2;
-          animate3D();
-        },
-        undefined,
-        (error) => console.error('Error loading 3D model:', error)
-      );
+      try {
+        const container = document.getElementById('3d');
+        const width = 192;
+        const height = 180;
+        
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+        renderer = new THREE.WebGLRenderer({alpha: true, antialias: true});
+        renderer.setSize(width, height);
+        renderer.setClearColor(0x000000, 0);
+        container.appendChild(renderer.domElement);
+        
+        const light = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(light);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight.position.set(0, 1, 1);
+        scene.add(directionalLight);
+        
+        // GLTFLoader is a global variable from the CDN script
+        if (typeof GLTFLoader === 'undefined') {
+          console.error('❌ GLTFLoader not loaded!');
+          return;
+        }
+        
+        const loader = new GLTFLoader();
+        console.log('🎨 Loading 3D model...');
+        loader.load(
+          'https://raw.githubusercontent.com/arduino/ArduinoAI/main/NiclaSenseME-dashboard/models/niclaSenseME.glb',
+          (gltf) => {
+            console.log('✅ 3D model loaded!');
+            mesh = gltf.scene;
+            mesh.scale.set(100, 100, 100);
+            scene.add(mesh);
+            camera.position.z = 2;
+            animate3D();
+          },
+          (progress) => {
+            console.log('Loading model:', Math.round((progress.loaded / progress.total) * 100) + '%');
+          },
+          (error) => {
+            console.error('❌ Error loading 3D model:', error);
+          }
+        );
+      } catch (error) {
+        console.error('❌ Error initializing 3D model:', error);
+      }
     }
 
     function animate3D() {
@@ -1159,12 +1178,19 @@ export const SPA_HTML = `<!DOCTYPE html>
     
     async function loadHistoryPage() {
       try {
+        console.log('📊 Loading history page...');
         const response = await fetch('/api/sessions');
+        
+        if (!response.ok) {
+          throw new Error(\`HTTP \${response.status}: \${response.statusText}\`);
+        }
+        
         const sessions = await response.json();
+        console.log('✅ Sessions loaded:', sessions);
         
         const container = document.getElementById('sessionsList');
         
-        if (sessions.length === 0) {
+        if (!sessions || sessions.length === 0) {
           container.innerHTML = '<p style="text-align: center; color: #888;">No sessions recorded yet</p>';
           return;
         }
@@ -1183,9 +1209,9 @@ export const SPA_HTML = `<!DOCTYPE html>
         \`).join('');
         
       } catch (error) {
-        console.error('Failed to load history:', error);
+        console.error('❌ Failed to load history:', error);
         document.getElementById('sessionsList').innerHTML = 
-          '<p style="text-align: center; color: #f44;">Failed to load sessions</p>';
+          \`<p style="text-align: center; color: #f44;">Failed to load sessions<br><small>\${error.message}</small></p>\`;
       }
     }
 
@@ -1195,8 +1221,15 @@ export const SPA_HTML = `<!DOCTYPE html>
     
     async function loadAnalyticsPage() {
       try {
+        console.log('📈 Loading analytics page...');
         const response = await fetch('/api/analytics/summary');
+        
+        if (!response.ok) {
+          throw new Error(\`HTTP \${response.status}: \${response.statusText}\`);
+        }
+        
         const summary = await response.json();
+        console.log('✅ Analytics loaded:', summary);
         
         document.getElementById('totalSessions').textContent = summary.total_sessions || 0;
         document.getElementById('totalReadings').textContent = summary.total_readings || 0;
@@ -1234,13 +1267,13 @@ export const SPA_HTML = `<!DOCTYPE html>
           
           chartsContainer.innerHTML = chartsHTML;
         } else {
-          chartsContainer.innerHTML = '<p style="text-align: center; color: #888;">No sensor data available yet</p>';
+          chartsContainer.innerHTML = '<p style="text-align: center; color: #888;">No sensor data available yet. Start recording to see analytics!</p>';
         }
         
       } catch (error) {
-        console.error('Failed to load analytics:', error);
+        console.error('❌ Failed to load analytics:', error);
         document.getElementById('analyticsCharts').innerHTML = 
-          '<p style="text-align: center; color: #f44;">Failed to load analytics</p>';
+          \`<p style="text-align: center; color: #f44;">Failed to load analytics<br><small>\${error.message}</small></p>\`;
       }
     }
 
