@@ -2,13 +2,25 @@ name = "nicla-sense-platform"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
+account_id = "f61c658f1de7911b0a529f38308adb21"  # Mmcintosh@infowall.com's Account (sensorsuites.com)
 
 # Development
 [env.dev]
 vars = { ENVIRONMENT = "development" }
 
+# Staging
+[env.staging]
+name = "nicla-sense-platform-staging"
+vars = { ENVIRONMENT = "staging" }
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "nicla-sensor-db-staging"
+database_id = "9f48f1eb-173b-4050-a4d5-2ad968483550"
+
 # Production
 [env.production]
+name = "nicla-sense-platform-prod"
 vars = { ENVIRONMENT = "production" }
 
 # Database binding
@@ -17,10 +29,6 @@ binding = "DB"
 database_name = "nicla-sensor-db"
 database_id = "local-db" # Local development database
 migrations_dir = "migrations"
-
-# Static assets configuration
-[site]
-bucket = "./public"
 
 # Increase limits for sensor data
 [limits]
