@@ -251,7 +251,7 @@ app.get('/', async (c) => {
   return c.html(html);
 });
 
-// History page - simple for now
+// History page - with view and export
 app.get('/history', async (c) => {
   return c.html(`
 <!DOCTYPE html>
@@ -259,6 +259,7 @@ app.get('/history', async (c) => {
 <head>
   <title>History - Nicla Sensor Suite</title>
   <link href='https://fonts.googleapis.com/css?family=Roboto Mono' rel='stylesheet'>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <style>
     body {
       font-family: 'Roboto Mono', sans-serif;
@@ -267,7 +268,77 @@ app.get('/history', async (c) => {
       padding: 20px;
     }
     a { color: #d8f41d; text-decoration: none; }
-    .session { background: #111; padding: 15px; margin: 10px 0; border-radius: 5px; }
+    .session { 
+      background: #111; 
+      padding: 15px; 
+      margin: 10px 0; 
+      border-radius: 5px;
+      border: 1px solid #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .session:hover { border-color: #d8f41d; }
+    .session-info h3 { margin: 0 0 10px 0; color: #d8f41d; }
+    .session-meta { font-size: 12px; color: #888; }
+    .session-actions { display: flex; gap: 10px; }
+    .btn {
+      background: #d8f41d;
+      color: #000;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn:hover { background: #c5db1a; }
+    .btn-secondary {
+      background: #444;
+      color: #fff;
+    }
+    .btn-secondary:hover { background: #555; }
+    .btn-danger {
+      background: #ff4444;
+      color: #fff;
+    }
+    .btn-danger:hover { background: #ff5555; }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      z-index: 1000;
+      overflow-y: auto;
+    }
+    .modal-content {
+      background: #111;
+      border: 1px solid #444;
+      border-radius: 8px;
+      margin: 50px auto;
+      max-width: 900px;
+      padding: 20px;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .modal-header h2 { margin: 0; color: #d8f41d; }
+    .close-btn {
+      background: #ff4444;
+      color: #fff;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .chart-container { margin: 20px 0; height: 300px; }
   </style>
 </head>
 <body>
@@ -278,6 +349,19 @@ app.get('/history', async (c) => {
   <h1>📊 Session History</h1>
   <div id="sessions">Loading...</div>
   
+  <!-- Session Detail Modal -->
+  <div id="detailModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">Session Details</h2>
+        <button id="closeModal" class="close-btn">✖</button>
+      </div>
+      <div id="modalBody">
+        <!-- Dynamically loaded content -->
+      </div>
+    </div>
+  </div>
+  
   <script>
     async function loadSessions() {
       try {
@@ -286,9 +370,7 @@ app.get('/history', async (c) => {
         
         console.log('Sessions response:', data);
         
-        // API returns paginated data: { sessions: [...], pagination: {...} }
         const sessions = data.sessions || data;
-        
         const container = document.getElementById('sessions');
         
         if (!sessions || sessions.length === 0) {
@@ -298,10 +380,18 @@ app.get('/history', async (c) => {
         
         container.innerHTML = sessions.map(session => 
           '<div class="session">' +
-          '<strong>Session #' + session.id + '</strong><br>' +
-          'Started: ' + new Date(session.started_at).toLocaleString() + '<br>' +
-          'Duration: ' + (session.duration || 'N/A') + ' min<br>' +
+          '<div class="session-info">' +
+          '<h3>' + (session.name || 'Session #' + session.id) + '</h3>' +
+          '<div class="session-meta">' +
+          'Started: ' + new Date(session.started_at).toLocaleString() + ' | ' +
+          'Duration: ' + (session.duration || 'N/A') + ' min | ' +
           'Status: ' + (session.ended_at ? 'Completed' : 'Active') +
+          '</div>' +
+          '</div>' +
+          '<div class="session-actions">' +
+          '<button class="btn" onclick="viewSession(\\'' + session.id + '\\')">👁 View</button>' +
+          '<button class="btn btn-secondary" onclick="exportSession(\\'' + session.id + '\\')">📥 Export</button>' +
+          '</div>' +
           '</div>'
         ).join('');
         
@@ -310,6 +400,81 @@ app.get('/history', async (c) => {
         document.getElementById('sessions').innerHTML = '<p style="color:#f44;">Error loading sessions</p>';
       }
     }
+    
+    async function viewSession(sessionId) {
+      const modal = document.getElementById('detailModal');
+      const modalBody = document.getElementById('modalBody');
+      const modalTitle = document.getElementById('modalTitle');
+      
+      modal.style.display = 'block';
+      modalBody.innerHTML = '<div style="text-align:center;padding:40px;color:#888;">Loading session data...</div>';
+
+      try {
+        const response = await fetch('/api/analytics/sessions/' + sessionId);
+        const data = await response.json();
+        
+        modalTitle.textContent = 'Session #' + sessionId;
+        
+        const stats = data.statistics || {};
+        
+        modalBody.innerHTML = 
+          '<div>' +
+          '<p><strong>Session ID:</strong> ' + sessionId + '</p>' +
+          '<p><strong>Duration:</strong> ' + ((data.duration_ms || 0) / 60000).toFixed(1) + ' minutes</p>' +
+          '<hr style="border-color:#333;margin:20px 0;">' +
+          '<h3 style="color:#d8f41d;">Sensor Statistics</h3>';
+        
+        // Temperature
+        if (stats.temperature) {
+          modalBody.innerHTML += 
+            '<div class="chart-container" id="tempChart"></div>';
+          
+          Plotly.newPlot('tempChart', [{
+            y: [stats.temperature.min, stats.temperature.avg, stats.temperature.max],
+            x: ['Min', 'Average', 'Max'],
+            type: 'bar',
+            marker: { color: '#d8f41d' }
+          }], {
+            title: 'Temperature (°C)',
+            paper_bgcolor: '#111',
+            plot_bgcolor: '#111',
+            font: { color: '#fff' }
+          });
+        }
+        
+        // Add more sensor charts as needed
+        modalBody.innerHTML += '</div>';
+        
+      } catch (error) {
+        console.error('Failed to load session details:', error);
+        modalBody.innerHTML = '<p style="color:#f44;">Error loading session details</p>';
+      }
+    }
+    
+    async function exportSession(sessionId) {
+      try {
+        const response = await fetch('/api/analytics/export/' + sessionId + '?format=csv');
+        const text = await response.text();
+        
+        // Download CSV
+        const blob = new Blob([text], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'session-' + sessionId + '.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        console.log('✅ Session exported');
+      } catch (error) {
+        console.error('Export failed:', error);
+        alert('Export failed: ' + error.message);
+      }
+    }
+    
+    document.getElementById('closeModal').addEventListener('click', () => {
+      document.getElementById('detailModal').style.display = 'none';
+    });
     
     loadSessions();
   </script>
