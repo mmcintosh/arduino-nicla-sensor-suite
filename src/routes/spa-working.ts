@@ -413,41 +413,89 @@ app.get('/history', async (c) => {
         const response = await fetch('/api/analytics/sessions/' + sessionId);
         const data = await response.json();
         
-        modalTitle.textContent = 'Session #' + sessionId;
+        console.log('📊 Session data:', data);
+        
+        modalTitle.textContent = data.session_name || 'Session #' + sessionId;
         
         const stats = data.statistics || {};
         
-        modalBody.innerHTML = 
+        let html = 
           '<div>' +
           '<p><strong>Session ID:</strong> ' + sessionId + '</p>' +
           '<p><strong>Duration:</strong> ' + ((data.duration_ms || 0) / 60000).toFixed(1) + ' minutes</p>' +
           '<hr style="border-color:#333;margin:20px 0;">' +
           '<h3 style="color:#d8f41d;">Sensor Statistics</h3>';
         
-        // Temperature
-        if (stats.temperature) {
-          modalBody.innerHTML += 
-            '<div class="chart-container" id="tempChart"></div>';
-          
-          Plotly.newPlot('tempChart', [{
-            y: [stats.temperature.min, stats.temperature.avg, stats.temperature.max],
-            x: ['Min', 'Average', 'Max'],
-            type: 'bar',
-            marker: { color: '#d8f41d' }
-          }], {
-            title: 'Temperature (°C)',
-            paper_bgcolor: '#111',
-            plot_bgcolor: '#111',
-            font: { color: '#fff' }
-          });
+        // Show all available stats
+        const sensors = [
+          { key: 'temperature', label: 'Temperature (°C)', color: '#ff6b6b' },
+          { key: 'humidity', label: 'Humidity (%)', color: '#4ecdc4' },
+          { key: 'pressure', label: 'Pressure (kPa)', color: '#45b7d1' },
+          { key: 'bsec', label: 'Air Quality', color: '#96ceb4' },
+          { key: 'co2', label: 'CO2 (ppm)', color: '#ffeaa7' },
+          { key: 'gas', label: 'Gas', color: '#dfe6e9' }
+        ];
+        
+        let chartCount = 0;
+        sensors.forEach(sensor => {
+          if (stats[sensor.key] && stats[sensor.key].count > 0) {
+            const s = stats[sensor.key];
+            html += 
+              '<div style="background:#1a1a1a;padding:15px;margin:10px 0;border-radius:5px;">' +
+              '<h4 style="margin:0 0 10px 0;color:#d8f41d;">' + sensor.label + '</h4>' +
+              '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;font-size:14px;">' +
+              '<div><strong>Count:</strong> ' + s.count + '</div>' +
+              '<div><strong>Min:</strong> ' + s.min.toFixed(2) + '</div>' +
+              '<div><strong>Avg:</strong> ' + s.avg.toFixed(2) + '</div>' +
+              '<div><strong>Max:</strong> ' + s.max.toFixed(2) + '</div>' +
+              '</div>' +
+              '<div class="chart-container" id="chart' + chartCount + '"></div>' +
+              '</div>';
+            chartCount++;
+          }
+        });
+        
+        // Motion sensors
+        if (stats.motion) {
+          html += 
+            '<div style="background:#1a1a1a;padding:15px;margin:10px 0;border-radius:5px;">' +
+            '<h4 style="margin:0 0 10px 0;color:#d8f41d;">Motion Sensors</h4>' +
+            '<p><strong>Accelerometer readings:</strong> ' + (stats.motion.accel_count || 0) + '</p>' +
+            '<p><strong>Gyroscope readings:</strong> ' + (stats.motion.gyro_count || 0) + '</p>' +
+            '</div>';
         }
         
-        // Add more sensor charts as needed
-        modalBody.innerHTML += '</div>';
+        if (chartCount === 0) {
+          html += '<p style="color:#888;">No sensor data available for this session.</p>';
+        }
+        
+        html += '</div>';
+        modalBody.innerHTML = html;
+        
+        // Create charts
+        chartCount = 0;
+        sensors.forEach(sensor => {
+          if (stats[sensor.key] && stats[sensor.key].count > 0) {
+            const s = stats[sensor.key];
+            Plotly.newPlot('chart' + chartCount, [{
+              y: [s.min, s.avg, s.max],
+              x: ['Min', 'Average', 'Max'],
+              type: 'bar',
+              marker: { color: sensor.color }
+            }], {
+              paper_bgcolor: '#1a1a1a',
+              plot_bgcolor: '#1a1a1a',
+              font: { color: '#fff' },
+              margin: { t: 20, b: 30, l: 40, r: 20 },
+              height: 250
+            }, { responsive: true });
+            chartCount++;
+          }
+        });
         
       } catch (error) {
         console.error('Failed to load session details:', error);
-        modalBody.innerHTML = '<p style="color:#f44;">Error loading session details</p>';
+        modalBody.innerHTML = '<p style="color:#f44;">Error loading session details: ' + error.message + '</p>';
       }
     }
     
