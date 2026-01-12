@@ -423,31 +423,34 @@ app.get('/history', async (c) => {
           '<div>' +
           '<p><strong>Session ID:</strong> ' + sessionId + '</p>' +
           '<p><strong>Duration:</strong> ' + ((data.duration_ms || 0) / 60000).toFixed(1) + ' minutes</p>' +
+          '<p><strong>Total Readings:</strong> ' + (stats.total_readings || 0) + '</p>' +
           '<hr style="border-color:#333;margin:20px 0;">' +
           '<h3 style="color:#d8f41d;">Sensor Statistics</h3>';
         
-        // Show all available stats
+        // Show all available stats (matching actual API response structure)
         const sensors = [
-          { key: 'temperature', label: 'Temperature (°C)', color: '#ff6b6b' },
-          { key: 'humidity', label: 'Humidity (%)', color: '#4ecdc4' },
-          { key: 'pressure', label: 'Pressure (kPa)', color: '#45b7d1' },
-          { key: 'bsec', label: 'Air Quality', color: '#96ceb4' },
-          { key: 'co2', label: 'CO2 (ppm)', color: '#ffeaa7' },
-          { key: 'gas', label: 'Gas', color: '#dfe6e9' }
+          { prefix: 'temp', label: 'Temperature (°C)', color: '#ff6b6b' },
+          { prefix: 'humidity', label: 'Humidity (%)', color: '#4ecdc4' },
+          { prefix: 'pressure', label: 'Pressure (kPa)', color: '#45b7d1' },
+          { prefix: 'bsec', label: 'Air Quality (BSEC)', color: '#96ceb4' },
+          { prefix: 'co2', label: 'CO2 (ppm)', color: '#ffeaa7' },
+          { prefix: 'gas', label: 'Gas Resistance (Ω)', color: '#dfe6e9' }
         ];
         
         let chartCount = 0;
         sensors.forEach(sensor => {
-          if (stats[sensor.key] && stats[sensor.key].count > 0) {
-            const s = stats[sensor.key];
+          const minKey = sensor.prefix + '_min';
+          const maxKey = sensor.prefix + '_max';
+          const avgKey = sensor.prefix + '_avg';
+          
+          if (stats[minKey] !== undefined && stats[minKey] !== null) {
             html += 
               '<div style="background:#1a1a1a;padding:15px;margin:10px 0;border-radius:5px;">' +
               '<h4 style="margin:0 0 10px 0;color:#d8f41d;">' + sensor.label + '</h4>' +
-              '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;font-size:14px;">' +
-              '<div><strong>Count:</strong> ' + s.count + '</div>' +
-              '<div><strong>Min:</strong> ' + s.min.toFixed(2) + '</div>' +
-              '<div><strong>Avg:</strong> ' + s.avg.toFixed(2) + '</div>' +
-              '<div><strong>Max:</strong> ' + s.max.toFixed(2) + '</div>' +
+              '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:14px;">' +
+              '<div><strong>Min:</strong> ' + (stats[minKey] || 0).toFixed(2) + '</div>' +
+              '<div><strong>Avg:</strong> ' + (stats[avgKey] || 0).toFixed(2) + '</div>' +
+              '<div><strong>Max:</strong> ' + (stats[maxKey] || 0).toFixed(2) + '</div>' +
               '</div>' +
               '<div class="chart-container" id="chart' + chartCount + '"></div>' +
               '</div>';
@@ -456,29 +459,45 @@ app.get('/history', async (c) => {
         });
         
         // Motion sensors
-        if (stats.motion) {
+        if (stats.accel_magnitude_avg !== undefined) {
           html += 
             '<div style="background:#1a1a1a;padding:15px;margin:10px 0;border-radius:5px;">' +
-            '<h4 style="margin:0 0 10px 0;color:#d8f41d;">Motion Sensors</h4>' +
-            '<p><strong>Accelerometer readings:</strong> ' + (stats.motion.accel_count || 0) + '</p>' +
-            '<p><strong>Gyroscope readings:</strong> ' + (stats.motion.gyro_count || 0) + '</p>' +
+            '<h4 style="margin:0 0 10px 0;color:#d8f41d;">Accelerometer (magnitude)</h4>' +
+            '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;font-size:14px;">' +
+            '<div><strong>Avg:</strong> ' + (stats.accel_magnitude_avg || 0).toFixed(2) + '</div>' +
+            '<div><strong>Max:</strong> ' + (stats.accel_magnitude_max || 0).toFixed(2) + '</div>' +
+            '</div>' +
             '</div>';
         }
         
-        if (chartCount === 0) {
+        if (stats.gyro_magnitude_avg !== undefined) {
+          html += 
+            '<div style="background:#1a1a1a;padding:15px;margin:10px 0;border-radius:5px;">' +
+            '<h4 style="margin:0 0 10px 0;color:#d8f41d;">Gyroscope (magnitude)</h4>' +
+            '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;font-size:14px;">' +
+            '<div><strong>Avg:</strong> ' + (stats.gyro_magnitude_avg || 0).toFixed(2) + '</div>' +
+            '<div><strong>Max:</strong> ' + (stats.gyro_magnitude_max || 0).toFixed(2) + '</div>' +
+            '</div>' +
+            '</div>';
+        }
+        
+        if (chartCount === 0 && !stats.accel_magnitude_avg && !stats.gyro_magnitude_avg) {
           html += '<p style="color:#888;">No sensor data available for this session.</p>';
         }
         
         html += '</div>';
         modalBody.innerHTML = html;
         
-        // Create charts
+        // Create charts for sensors
         chartCount = 0;
         sensors.forEach(sensor => {
-          if (stats[sensor.key] && stats[sensor.key].count > 0) {
-            const s = stats[sensor.key];
+          const minKey = sensor.prefix + '_min';
+          const maxKey = sensor.prefix + '_max';
+          const avgKey = sensor.prefix + '_avg';
+          
+          if (stats[minKey] !== undefined && stats[minKey] !== null) {
             Plotly.newPlot('chart' + chartCount, [{
-              y: [s.min, s.avg, s.max],
+              y: [stats[minKey], stats[avgKey], stats[maxKey]],
               x: ['Min', 'Average', 'Max'],
               type: 'bar',
               marker: { color: sensor.color }
