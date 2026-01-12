@@ -1,398 +1,240 @@
-# Arduino Nicla Sense ME - IoT Data Platform
-## Project State & Roadmap
+# Project State - Arduino Nicla Sensor Suite
 
-**Last Updated**: January 11, 2026 - 1:15 AM  
-**Status**: ✅ Fully Functional - Recording & Analytics Working
-
----
-
-## 🎉 Current Status
-
-### ✅ Working Features
-
-#### 1. **Main Dashboard** (http://localhost:8787/)
-- Real-time sensor visualization with live graphs
-- 3D board rotation using quaternion data
-- RGB LED color picker control
-- Web Bluetooth connection to Arduino Nicla Sense ME
-- **Data Recording System**:
-  - START/STOP recording buttons
-  - Session naming and timestamps
-  - Real-time data capture from all sensors
-  - Auto-save every 5 seconds
-  - Visual feedback (button turns green when recording)
-- Navigation links to History and Analytics pages
-
-#### 2. **Sensor Data Collection**
-Successfully recording from all sensors:
-- ✅ Accelerometer (X, Y, Z axes)
-- ✅ Gyroscope (X, Y, Z axes)
-- ✅ Quaternion (X, Y, Z, W for 3D rotation)
-- ✅ Temperature (°C)
-- ✅ Humidity (%)
-- ✅ Pressure (kPa)
-- ✅ Air Quality (BSEC index)
-- ✅ CO2 levels
-- ✅ Gas sensor readings
-
-**Current Performance**: 1,894 readings saved in test session (~95 readings/sensor/session)
-
-#### 3. **History Page** (http://localhost:8787/history)
-- View all recording sessions
-- Filter by status (active/completed)
-- Search by session name
-- Session details showing:
-  - Total readings count
-  - Duration
-  - Start/end timestamps
-  - Status badges
-- **View Data Modal**:
-  - Individual charts for each sensor type
-  - Time-series visualization using Plotly.js
-  - Interactive graphs with zoom/pan
-- **Export to CSV** - Download session data
-- **Delete sessions** - Clean up old data
-- Pagination for large datasets
-
-#### 4. **Analytics Dashboard** (http://localhost:8787/analytics)
-- Key statistics:
-  - Total sessions count
-  - Total readings count
-  - Active sessions
-  - Average session duration
-- **Sensor-specific analytics**:
-  - Average values bar chart (all sensors)
-  - Temperature trends over time
-  - Humidity trends over time
-  - Pressure trends over time
-  - Air Quality (BSEC) trends over time
-- Aggregates data from up to 10 most recent sessions
-- Recent sessions list with status
-
-#### 5. **Backend Infrastructure**
-- **API Endpoints** (all working):
-  - `POST /api/sessions/start` - Create recording session
-  - `POST /api/sessions/:id/stop` - End session
-  - `GET /api/sessions` - List all sessions (with pagination)
-  - `GET /api/sessions/:id` - Get session details
-  - `GET /api/sessions/:id/data` - Get sensor readings
-  - `DELETE /api/sessions/:id` - Delete session
-  - `POST /api/sensor-data` - Store sensor reading
-  - `GET /api/analytics/summary` - Overall statistics
-  - `GET /health` - Health check
-
-- **Database** (Cloudflare D1 / SQLite):
-  - `sessions` table - Recording sessions
-  - `sensor_readings` table - All sensor data
-  - `session_analytics` table - Aggregated statistics
-  - Proper foreign key relationships
-  - Indexes for performance
-
-- **Tech Stack**:
-  - Hono web framework
-  - Cloudflare Workers (serverless)
-  - D1 Database (SQLite)
-  - TypeScript
-  - Vitest for testing
-  - Wrangler CLI v4.58.0
-
-#### 6. **Testing Suite**
-- Comprehensive test coverage following SonicJS patterns
-- Unit tests for utilities
-- API endpoint tests
-- Integration tests
-- Database tests
-- GitHub Actions CI/CD workflow
+**Last Updated:** January 11, 2026  
+**Current Branch:** `feature/spa-persistent-ble`  
+**Status:** ✅ **FUNCTIONAL** - Core features working locally
 
 ---
 
-## 🐛 Known Issues / Limitations
+## 🎯 Current Status
 
-### Minor UI Issues:
-1. **Navigation Links**
-   - Current: Small text in top-right, icons not very helpful
-   - Need: Larger, more visible navigation with better icons/labels
+### ✅ What's Working
 
-2. **Page Navigation Behavior**
-   - Web Bluetooth connections don't persist across page navigations
-   - User must re-pair Arduino when returning to dashboard
-   - This is a Web Bluetooth API limitation, not a bug
-   - Consider: Single-page app (SPA) to avoid re-pairing
+#### Dashboard (Main Page)
+- ✅ Web Bluetooth pairing with Arduino Nicla Sense ME
+- ✅ Real-time sensor data streaming and visualization
+- ✅ 3D model rotation based on quaternion data
+- ✅ Live sensor readings display (Temperature, Humidity, Pressure, Air Quality, CO2, Gas, Accelerometer, Gyroscope)
+- ✅ RGB LED color picker control
+- ✅ Session recording with configurable duration
+- ✅ Data batching and API submission
+- ✅ Navigation links to History and Analytics pages
 
-3. **Logo Missing**
-   - Original Arduino logo (Logo-Arduino-Pro-inline.svg) returns 404
-   - Currently replaced with text navigation links
-   - Consider: Add custom logo or improve branding
+#### History Page
+- ✅ Session list with pagination
+- ✅ View session details modal showing:
+  - Session metadata (ID, name, duration, total readings)
+  - All sensor statistics (Min, Avg, Max for each sensor type)
+  - Charts for each sensor (Temperature, Humidity, Pressure, Air Quality, CO2, Gas)
+  - Motion sensor statistics (Accelerometer, Gyroscope magnitudes)
+- ✅ Export session data (CSV and JSON formats)
+- ✅ Session deletion
 
-### Technical Debt:
-1. **Static File Serving**
-   - Currently embedding all HTML/CSS/JS to avoid Cloudflare Workers static file complexity
-   - Works well but makes files large
-   - Future: Consider proper asset bundling
+#### Analytics Page
+- ✅ Summary statistics (Total sessions, total readings, average duration, active sessions)
+- ✅ Sensor averages by type with Min/Avg/Max/Count
+- ✅ Clean, modern UI with dark theme
 
-2. **Error Handling**
-   - Basic error messages in console
-   - Could add user-friendly error notifications
-   - Consider retry logic for failed API calls
+#### Backend API
+- ✅ Sensor data ingestion (`POST /api/sensor-data`, `POST /api/sensor-data/batch`)
+- ✅ Session management (`POST /api/sessions/start`, `POST /api/sessions/:id/stop`, `GET /api/sessions`, `DELETE /api/sessions/:id`)
+- ✅ Analytics endpoints (`GET /api/analytics/summary`, `GET /api/analytics/sessions/:id`, `GET /api/analytics/export/:id`)
+- ✅ D1 database (SQLite) with migrations
+- ✅ CORS enabled for local development
 
-3. **Performance**
-   - Recording creates many small API requests (one per sensor reading)
-   - Consider: Batch more aggressively (current: 10 readings/batch)
-   - Analytics loads from multiple sessions sequentially
-   - Consider: Parallel loading or server-side aggregation
+#### Testing & CI
+- ✅ Vitest unit tests for API, utilities, and integration
+- ✅ Playwright E2E tests for dashboard, history, analytics, and navigation
+- ✅ GitHub Actions CI pipeline running on every push
+- ✅ All tests passing in CI (with API mocking for E2E tests)
 
----
-
-## 🎯 Next Steps & Future Enhancements
-
-### High Priority:
-
-#### 1. **Improve Navigation UI**
-- Make navigation more prominent
-- Add breadcrumbs
-- Consider sidebar or top navigation bar
-- Better mobile responsiveness
-- Add keyboard shortcuts
-
-#### 2. **Enhanced Analytics**
-- **Per-sensor statistics**:
-  - Min/max values
-  - Standard deviation
-  - Outlier detection
-- **Comparison views**:
-  - Compare multiple sessions side-by-side
-  - Overlay graphs from different sessions
-- **Time-range filtering**:
-  - View data by hour/day/week/month
-- **Export analytics**:
-  - PDF reports
-  - Summary statistics CSV
-
-#### 3. **Data Visualization Improvements**
-- **Dashboard enhancements**:
-  - Customizable widget layout
-  - Save/load dashboard configurations
-  - Multiple dashboard views
-- **Chart improvements**:
-  - More chart types (scatter, box plots, heatmaps)
-  - Annotation support
-  - Export charts as images
-- **Real-time stats**:
-  - Show current min/max/avg while recording
-  - Data rate indicator
-  - Connection quality meter
-
-#### 4. **Mobile Optimization**
-- Responsive design for all pages
-- Touch-friendly controls
-- Mobile-specific layouts
-- PWA (Progressive Web App) support
-- Offline mode for viewing cached data
-
-### Medium Priority:
-
-#### 5. **Advanced Features**
-- **Alerts & Notifications**:
-  - Set thresholds for sensor values
-  - Email/SMS alerts when exceeded
-  - Visual warnings on dashboard
-- **Data Processing**:
-  - Moving averages
-  - Filtering (low-pass, high-pass)
-  - Calibration offsets
-  - Unit conversions
-- **Session Management**:
-  - Tags for categorizing sessions
-  - Notes/annotations on sessions
-  - Search by date range
-  - Bulk operations (delete multiple, export multiple)
-
-#### 6. **Collaboration Features**
-- User accounts and authentication
-- Share sessions with others
-- Team workspaces
-- Comments on sessions
-- Access control (view/edit permissions)
-
-#### 7. **Arduino Sketch Enhancements**
-- OTA (Over-the-Air) updates
-- Configurable sampling rates
-- Battery level reporting
-- Sleep modes for power saving
-- Multiple BLE connection support
-
-### Low Priority / Nice-to-Have:
-
-#### 8. **Integration & Export**
-- **Data export formats**:
-  - JSON
-  - MATLAB format
-  - Excel with charts
-- **API integrations**:
-  - Webhook notifications
-  - IFTTT support
-  - Google Sheets export
-  - Cloud storage (Dropbox, Google Drive)
-
-#### 9. **Advanced Analytics**
-- Machine learning predictions
-- Anomaly detection
-- Correlation analysis between sensors
-- Fourier transforms for frequency analysis
-- Pattern recognition
-
-#### 10. **Documentation**
-- Video tutorials
-- Interactive guides
-- API documentation with examples
-- Best practices guide
-- Troubleshooting FAQ
+#### Deployment
+- ✅ Cloudflare staging environment deployed (`nicla-sensor-db-staging`)
+- ✅ D1 database created and migrated on staging
+- ✅ Worker deployed to staging URL
+- ✅ Production domain ready: `sensorsuites.com`
 
 ---
 
-## 🚀 Deployment Roadmap
+## ⚠️ Known Issues & Limitations
 
-### Phase 1: Local Development ✅ COMPLETE
-- ✅ Local database setup
-- ✅ Development server running
-- ✅ All core features working
-- ✅ Testing suite in place
+### 🔴 Critical Issues
+1. **BLE Connection Lost on Navigation**
+   - When navigating away from the dashboard and returning, the Web Bluetooth connection is lost
+   - User must re-pair the device to resume streaming
+   - **Root Cause:** Web Bluetooth connections do not persist across full page reloads
+   - **Attempted Solution:** Tried converting to Single Page Application (SPA) but encountered JavaScript parsing issues with large HTML strings
+   - **Current Workaround:** Using multi-page architecture (full page reloads)
 
-### Phase 2: Production Deployment (Not Started)
-1. **Cloudflare Setup**:
-   - Create Cloudflare account
-   - Set up D1 production database
-   - Configure wrangler.toml for production
-   - Run migrations on production DB
+### 🟡 Medium Priority Issues
+1. **Chart Visualization**
+   - Current charts in session view modal are simple bar charts (Min/Avg/Max)
+   - User wants different/better chart types (to be discussed)
+   - **Next Step:** Discuss chart preferences (line charts over time? Sparklines? Heatmaps?)
 
-2. **Domain & SSL**:
-   - Register domain or use Cloudflare subdomain
-   - Configure DNS
-   - SSL automatically handled by Cloudflare
+2. **Missing Arduino Logo**
+   - Original Arduino logo reference (`/Logo-Arduino-Pro-inline.svg`) returns 404
+   - Not critical to functionality
 
-3. **Deployment**:
-   ```bash
-   npm run db:migrate -- --remote
-   npx wrangler deploy
-   ```
+3. **Plotly Version Warning**
+   - Using old Plotly CDN (`plotly-latest.min.js` = v1.58.5 from July 2021)
+   - Should update to explicit latest version from `cdn.plot.ly`
 
-4. **Monitoring**:
-   - Set up Cloudflare Analytics
-   - Error tracking (Sentry)
-   - Uptime monitoring
-
-### Phase 3: Scaling & Optimization (Future)
-- CDN for static assets
-- Database indexing optimization
-- Caching strategies
-- Rate limiting
-- Load testing
+### 🟢 Low Priority / Nice-to-Have
+1. Session tags and notes functionality (fields exist in DB but not in UI)
+2. Advanced filtering on history page (by date range, sensor type, etc.)
+3. Real-time session monitoring dashboard
+4. Data retention policies
+5. User authentication (currently none)
 
 ---
 
-## 📁 Project Structure
+## 📊 Recent Achievements (Last Session)
 
+1. ✅ **Fixed History View Modal** - Session details now correctly display all sensor statistics (Temperature, Humidity, Pressure, Air Quality, CO2, Gas, Accelerometer, Gyroscope) with Min/Avg/Max values and charts
+2. ✅ **Fixed Analytics Summary Query** - Corrected SQL to aggregate data from individual sensor columns instead of non-existent `sensor_type` column
+3. ✅ **Fixed Data Recording Format** - Sensor data now correctly populates individual database columns (e.g., `temperature`, `accel_x`) instead of incorrect `sensor_type`/`value` format
+4. ✅ **Enhanced Navigation** - Added navigation links on dashboard to access History and Analytics pages
+5. ✅ **Improved Recording UX** - Clarified recording prompt and fixed session ID capture
+6. ✅ **Database Persistence** - Configured local D1 database to persist with `--persist-to=.wrangler/state/v3` flag
+7. ✅ **All Tests Passing** - Both Vitest unit tests and Playwright E2E tests green in CI
+
+---
+
+## 🚀 Next Steps
+
+### Tomorrow's Priorities
+1. **Improve Chart Visualizations**
+   - Discuss and implement better chart types for session view
+   - Consider: Line charts over time, sparklines, distribution charts, etc.
+   - Potentially use Plotly's time-series capabilities to show sensor trends
+
+2. **Update Plotly to Latest Version**
+   - Replace `plotly-latest.min.js` with explicit version from CDN
+   - Ensure compatibility with existing chart code
+
+3. **Address BLE Persistence** (if time permits)
+   - Option A: Revisit SPA implementation with better templating approach
+   - Option B: Implement auto-reconnect feature on navigation
+   - Option C: Accept multi-page architecture and document limitation
+
+### Future Enhancements
+1. Deploy to production (`sensorsuites.com`)
+2. Add session tagging and notes UI
+3. Implement advanced filtering on history page
+4. Add data export for multiple sessions at once
+5. Real-time analytics dashboard with WebSocket updates
+6. User authentication and multi-tenancy
+7. Mobile-responsive design improvements
+8. Data retention and archival policies
+
+---
+
+## 🏗️ Architecture Summary
+
+### Tech Stack
+- **Frontend:** Vanilla JavaScript, HTML, CSS (embedded in Hono routes)
+- **Backend:** Hono (lightweight web framework for Cloudflare Workers)
+- **Database:** Cloudflare D1 (SQLite-compatible)
+- **Runtime:** Cloudflare Workers (Edge compute)
+- **Testing:** Vitest (unit), Playwright (E2E)
+- **CI/CD:** GitHub Actions
+- **Libraries:**
+  - Three.js (3D model rendering)
+  - Plotly.js (charts and graphs)
+  - iro.js (color picker)
+  - Web Bluetooth API (device communication)
+
+### File Structure
 ```
 nicla/
 ├── src/
-│   ├── index.ts              # Main app entry
+│   ├── index.ts                    # Main Hono app entry point
 │   ├── routes/
-│   │   ├── dashboard.ts      # Main dashboard with recording
-│   │   ├── dashboard-html.ts # Embedded HTML content
-│   │   ├── history.ts        # Session history page
-│   │   ├── analytics-page.ts # Analytics dashboard
-│   │   ├── sensor-data.ts    # Sensor data API
-│   │   ├── sessions.ts       # Session management API
-│   │   └── analytics.ts      # Analytics API
+│   │   ├── spa-working.ts          # Combined dashboard/history/analytics (current)
+│   │   ├── sensor-data.ts          # Sensor data API endpoints
+│   │   ├── sessions.ts             # Session management API
+│   │   └── analytics.ts            # Analytics API endpoints
 │   └── utils/
-│       └── helpers.ts        # Utility functions
+│       └── helpers.ts              # Utility functions
 ├── migrations/
 │   ├── 0001_create_sessions.sql
 │   ├── 0002_create_sensor_readings.sql
 │   └── 0003_create_analytics.sql
-├── tests/                    # Comprehensive test suite
-├── NiclaSenseME/
-│   └── NiclaSenseME.ino     # Arduino sketch
-├── models/
-│   └── niclaSenseME.glb     # 3D model
-├── index.html                # Original demo (standalone)
-├── wrangler.toml             # Cloudflare configuration
-├── package.json              # Dependencies
-└── tsconfig.json             # TypeScript config
+├── tests/
+│   ├── api/                        # API unit tests
+│   ├── e2e/                        # Playwright E2E tests
+│   └── fixtures/                   # Mock data
+├── docs/                           # All project documentation
+├── dist/                           # Compiled JavaScript (gitignored)
+├── .wrangler/                      # Wrangler local state (gitignored)
+├── package.json
+├── tsconfig.json
+├── wrangler.toml                   # Cloudflare Workers config
+├── vitest.config.ts
+└── playwright.config.ts
 ```
+
+### Database Schema
+- **sessions**: Session metadata (id, name, device info, timestamps, status)
+- **sensor_readings**: Individual sensor readings (session_id, timestamp, 15+ sensor columns)
+- **analytics**: Pre-computed analytics (currently unused, may deprecate)
 
 ---
 
 ## 🔧 Development Commands
 
 ```bash
-# Start development server
+# Install dependencies
+npm install
+
+# Apply database migrations
+npm run db:migrate
+
+# Start local dev server
 npm run dev
 
-# Build TypeScript
-npm run build
-
-# Run tests
+# Run unit tests
 npm test
 npm run test:watch
 npm run test:coverage
 
-# Database migrations
-npm run db:migrate
+# Run E2E tests
+npm run test:e2e
 
-# Check status
-./check-status.sh
+# Build for production
+npm run build
 
-# Restart server
-./restart-server.sh
+# Deploy to Cloudflare
+wrangler deploy --env staging   # Staging
+wrangler deploy --env production # Production (when ready)
 ```
-
----
-
-## 📊 Current Data
-
-- **Total Sessions**: 6
-- **Total Readings**: 1,894
-- **Database Size**: ~500KB (local)
-- **Sensors Active**: 9 types
-- **Average Recording**: ~190 readings/session
-
----
-
-## 🤝 Contributing
-
-See `CONTRIBUTING.md` for contribution guidelines.
 
 ---
 
 ## 📝 Notes
 
-### Recent Changes (Jan 11, 2026):
-- Fixed data recording timing issue (handleIncoming hook)
-- Added comprehensive console debugging
-- Fixed API null/undefined handling
-- Added navigation links to dashboard
-- Improved analytics to show per-sensor data
-- Verified all 1,894 readings saved successfully
-
-### Lessons Learned:
-1. Web Bluetooth API requires careful timing with page load
-2. Cloudflare Workers D1 doesn't accept `undefined` - use `?? null`
-3. `setTimeout` useful for ensuring DOM/functions are ready
-4. Console logging essential for debugging async browser code
-5. Embedding HTML in TypeScript works but makes files large
+- Local D1 database persists in `.wrangler/state/v3/v3/d1/`
+- If migrations are out of sync, run: `rm -rf .wrangler/state && npm run db:migrate`
+- Hard refresh browser (`Ctrl+Shift+R` / `Ctrl+F5`) to clear cached JavaScript after updates
+- Arduino must have the `NiclaSenseME.ino` sketch uploaded with BLE enabled
+- Chrome requires "Experimental Web Platform Features" flag for Web Bluetooth
 
 ---
 
-## 📞 Support
+## 🎉 Project Highlights
 
-For issues or questions:
-- Check `TESTING.md` for test procedures
-- See `LOCAL_TESTING.md` for local dev setup
-- Review `ARCHITECTURE.md` for system design
-- Check browser console for debugging info
+This project successfully transforms a simple Arduino demo into a **full-stack IoT data platform** with:
+- Real-time sensor streaming
+- Persistent data storage
+- Historical data analysis
+- Beautiful visualizations
+- Comprehensive testing
+- CI/CD pipeline
+- Cloud deployment ready
+
+Great progress today! 🚀
 
 ---
 
-**Status**: Ready for extended testing and feature enhancement!
-**Next Session**: Start with navigation UI improvements
+**Good night! See you tomorrow for chart improvements and more! 😴**
