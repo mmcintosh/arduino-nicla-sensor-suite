@@ -89,6 +89,14 @@ app.get('/summary', async (c) => {
     const readingCount = await c.env.DB.prepare(
       'SELECT COUNT(*) as total FROM sensor_readings'
     ).first();
+    
+    const activeSessions = await c.env.DB.prepare(
+      'SELECT COUNT(*) as total FROM sessions WHERE status = ?'
+    ).bind('active').first();
+    
+    const avgDuration = await c.env.DB.prepare(`
+      SELECT AVG(ended_at - started_at) as avg_ms FROM sessions WHERE ended_at IS NOT NULL
+    `).first();
 
     const recentSessions = await c.env.DB.prepare(`
       SELECT id, name, started_at, ended_at, status
@@ -96,11 +104,141 @@ app.get('/summary', async (c) => {
       ORDER BY started_at DESC
       LIMIT 5
     `).all();
+    
+    // Get sensor averages - separate query for each sensor type
+    const sensorAverages = [];
+    
+    // Temperature
+    const tempStats = await c.env.DB.prepare(`
+      SELECT 
+        COUNT(temperature) as reading_count,
+        AVG(temperature) as avg_value,
+        MIN(temperature) as min_value,
+        MAX(temperature) as max_value
+      FROM sensor_readings WHERE temperature IS NOT NULL
+    `).first();
+    if ((tempStats as any)?.reading_count > 0) {
+      sensorAverages.push({ sensor_type: 'temperature', ...tempStats });
+    }
+    
+    // Humidity
+    const humStats = await c.env.DB.prepare(`
+      SELECT 
+        COUNT(humidity) as reading_count,
+        AVG(humidity) as avg_value,
+        MIN(humidity) as min_value,
+        MAX(humidity) as max_value
+      FROM sensor_readings WHERE humidity IS NOT NULL
+    `).first();
+    if ((humStats as any)?.reading_count > 0) {
+      sensorAverages.push({ sensor_type: 'humidity', ...humStats });
+    }
+    
+    // Pressure
+    const pressStats = await c.env.DB.prepare(`
+      SELECT 
+        COUNT(pressure) as reading_count,
+        AVG(pressure) as avg_value,
+        MIN(pressure) as min_value,
+        MAX(pressure) as max_value
+      FROM sensor_readings WHERE pressure IS NOT NULL
+    `).first();
+    if ((pressStats as any)?.reading_count > 0) {
+      sensorAverages.push({ sensor_type: 'pressure', ...pressStats });
+    }
+    
+    // Air Quality (BSEC)
+    const bsecStats = await c.env.DB.prepare(`
+      SELECT 
+        COUNT(bsec) as reading_count,
+        AVG(bsec) as avg_value,
+        MIN(bsec) as min_value,
+        MAX(bsec) as max_value
+      FROM sensor_readings WHERE bsec IS NOT NULL
+    `).first();
+    if ((bsecStats as any)?.reading_count > 0) {
+      sensorAverages.push({ sensor_type: 'air_quality', ...bsecStats });
+    }
+    
+    // CO2
+    const co2Stats = await c.env.DB.prepare(`
+      SELECT 
+        COUNT(co2) as reading_count,
+        AVG(co2) as avg_value,
+        MIN(co2) as min_value,
+        MAX(co2) as max_value
+      FROM sensor_readings WHERE co2 IS NOT NULL
+    `).first();
+    if ((co2Stats as any)?.reading_count > 0) {
+      sensorAverages.push({ sensor_type: 'co2', ...co2Stats });
+    }
+    
+    // Gas
+    const gasStats = await c.env.DB.prepare(`
+      SELECT 
+        COUNT(gas) as reading_count,
+        AVG(gas) as avg_value,
+        MIN(gas) as min_value,
+        MAX(gas) as max_value
+      FROM sensor_readings WHERE gas IS NOT NULL
+    `).first();
+    if ((gasStats as any)?.reading_count > 0) {
+      sensorAverages.push({ sensor_type: 'gas', ...gasStats });
+    }
+    
+    // Accelerometer (average magnitude)
+    const accelStats = await c.env.DB.prepare(`
+      SELECT 
+        COUNT(*) as reading_count,
+        AVG(accel_x) as avg_x,
+        AVG(accel_y) as avg_y,
+        AVG(accel_z) as avg_z
+      FROM sensor_readings WHERE accel_x IS NOT NULL
+    `).first();
+    if ((accelStats as any)?.reading_count > 0) {
+      sensorAverages.push({ 
+        sensor_type: 'accelerometer', 
+        reading_count: (accelStats as any).reading_count,
+        avg_value: Math.sqrt(
+          Math.pow((accelStats as any).avg_x || 0, 2) + 
+          Math.pow((accelStats as any).avg_y || 0, 2) + 
+          Math.pow((accelStats as any).avg_z || 0, 2)
+        ),
+        min_value: 0,
+        max_value: 0
+      });
+    }
+    
+    // Gyroscope (average magnitude)
+    const gyroStats = await c.env.DB.prepare(`
+      SELECT 
+        COUNT(*) as reading_count,
+        AVG(gyro_x) as avg_x,
+        AVG(gyro_y) as avg_y,
+        AVG(gyro_z) as avg_z
+      FROM sensor_readings WHERE gyro_x IS NOT NULL
+    `).first();
+    if ((gyroStats as any)?.reading_count > 0) {
+      sensorAverages.push({ 
+        sensor_type: 'gyroscope', 
+        reading_count: (gyroStats as any).reading_count,
+        avg_value: Math.sqrt(
+          Math.pow((gyroStats as any).avg_x || 0, 2) + 
+          Math.pow((gyroStats as any).avg_y || 0, 2) + 
+          Math.pow((gyroStats as any).avg_z || 0, 2)
+        ),
+        min_value: 0,
+        max_value: 0
+      });
+    }
 
     return c.json({
       total_sessions: (sessionCount as any)?.total || 0,
       total_readings: (readingCount as any)?.total || 0,
-      recent_sessions: recentSessions.results
+      active_sessions: (activeSessions as any)?.total || 0,
+      avg_duration_minutes: (avgDuration as any)?.avg_ms ? ((avgDuration as any).avg_ms / 60000) : 0,
+      recent_sessions: recentSessions.results,
+      sensor_averages: sensorAverages
     });
 
   } catch (error: any) {

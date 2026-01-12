@@ -140,32 +140,66 @@ app.get('/', async (c) => {
     function recordSensorData(sensor, dataReceived) {
       console.log('🎯 Recording sensor data...', sensor.uuid);
       
+      // Determine sensor type from UUID
+      const uuid = sensor.uuid;
       const reading = {
         session_id: currentSessionId,
-        timestamp: new Date().toISOString(),
-        sensor_type: sensor.uuid.includes('2001') ? 'temperature' :
-                     sensor.uuid.includes('3001') ? 'humidity' :
-                     sensor.uuid.includes('4001') ? 'pressure' :
-                     sensor.uuid.includes('5001') ? 'accelerometer' :
-                     sensor.uuid.includes('6001') ? 'gyroscope' :
-                     sensor.uuid.includes('9001') ? 'air_quality' :
-                     sensor.uuid.includes('9002') ? 'co2' :
-                     sensor.uuid.includes('9003') ? 'gas' : 'unknown'
+        timestamp: Date.now()
       };
       
-      console.log('📝 Sensor type:', reading.sensor_type);
-      
-      // Parse the data based on sensor type
-      if (reading.sensor_type === 'temperature' || reading.sensor_type === 'pressure' || reading.sensor_type === 'air_quality') {
-        reading.value = dataReceived.getFloat32(0, true);
-      } else if (reading.sensor_type === 'humidity' || reading.sensor_type === 'gas') {
-        reading.value = dataReceived.getUint32(0, true);
-      } else if (reading.sensor_type === 'co2') {
-        reading.value = dataReceived.getInt32(0, true);
-      } else if (reading.sensor_type === 'accelerometer' || reading.sensor_type === 'gyroscope') {
-        reading.x = dataReceived.getFloat32(0, true);
-        reading.y = dataReceived.getFloat32(4, true);
-        reading.z = dataReceived.getFloat32(8, true);
+      // Map UUIDs to proper field names and parse data accordingly
+      if (uuid.includes('2001')) {
+        // Temperature
+        reading.temperature = dataReceived.getFloat32(0, true);
+        console.log('📝 Temperature:', reading.temperature);
+      } else if (uuid.includes('3001')) {
+        // Humidity
+        reading.humidity = dataReceived.getUint8(0);
+        console.log('📝 Humidity:', reading.humidity);
+      } else if (uuid.includes('4001')) {
+        // Pressure
+        reading.pressure = dataReceived.getFloat32(0, true);
+        console.log('📝 Pressure:', reading.pressure);
+      } else if (uuid.includes('5001')) {
+        // Accelerometer
+        reading.accelerometer = {
+          x: dataReceived.getFloat32(0, true),
+          y: dataReceived.getFloat32(4, true),
+          z: dataReceived.getFloat32(8, true)
+        };
+        console.log('📝 Accelerometer:', reading.accelerometer);
+      } else if (uuid.includes('6001')) {
+        // Gyroscope
+        reading.gyroscope = {
+          x: dataReceived.getFloat32(0, true),
+          y: dataReceived.getFloat32(4, true),
+          z: dataReceived.getFloat32(8, true)
+        };
+        console.log('📝 Gyroscope:', reading.gyroscope);
+      } else if (uuid.includes('7001')) {
+        // Quaternion
+        reading.quaternion = {
+          x: dataReceived.getFloat32(0, true),
+          y: dataReceived.getFloat32(4, true),
+          z: dataReceived.getFloat32(8, true),
+          w: dataReceived.getFloat32(12, true)
+        };
+        console.log('📝 Quaternion:', reading.quaternion);
+      } else if (uuid.includes('9001')) {
+        // BSEC (Air Quality)
+        reading.bsec = dataReceived.getFloat32(0, true);
+        console.log('📝 Air Quality:', reading.bsec);
+      } else if (uuid.includes('9002')) {
+        // CO2
+        reading.co2 = dataReceived.getInt32(0, true);
+        console.log('📝 CO2:', reading.co2);
+      } else if (uuid.includes('9003')) {
+        // Gas
+        reading.gas = dataReceived.getUint32(0, true);
+        console.log('📝 Gas:', reading.gas);
+      } else {
+        console.warn('⚠️ Unknown sensor UUID:', uuid);
+        return; // Don't save unknown sensors
       }
       
       dataBuffer.push(reading);
