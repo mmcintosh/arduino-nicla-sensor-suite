@@ -1,6 +1,16 @@
 # Port and Branch Configuration Map
 
-## ⚠️ CRITICAL: DO NOT CHANGE THESE MAPPINGS WITHOUT USER APPROVAL
+## ✅ FINAL DECISION: LOCKED DOWN
+
+### Port 8787 = Experimental (CAN MODIFY)
+- **Directory:** `/home/siddhartha/Documents/cursor-nicla-sense-me/nicla/`
+- **Branch:** `feature/spa-enhanced`
+- **Purpose:** Testing new features
+
+### Port 8788 = Baseline (NEVER MODIFY)
+- **Directory:** `/home/siddhartha/Documents/cursor-nicla-sense-me/nicla-working-baseline/`
+- **Branch:** `main` (frozen)
+- **Purpose:** Working reference version
 
 ---
 
